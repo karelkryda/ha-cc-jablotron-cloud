@@ -1,4 +1,5 @@
 """Config flow for Jablotron Cloud integration."""
+
 from __future__ import annotations
 
 import logging

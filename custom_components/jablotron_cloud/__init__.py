@@ -1,4 +1,5 @@
 """The Jablotron Cloud integration."""
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -25,11 +26,12 @@ PLATFORMS: list[Platform] = [
 
 ASYNC_TIMEOUT = 120
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Jablotron Cloud from a config entry."""
 
     username = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]    
+    password = entry.data[CONF_PASSWORD]
 
     _LOGGER.debug("Preparing Jablotron data update coordinator")
 
@@ -79,7 +81,9 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
 
     async def _recreate_bridge(self):
         # recreate bridge to restart connection until it is fixed on bridge side
-        self.bridge = Jablotron(self.bridge.username, self.bridge.password, self.bridge.pin_code)
+        self.bridge = Jablotron(
+            self.bridge.username, self.bridge.password, self.bridge.pin_code
+        )
         _LOGGER.warning("Bridge recreated.")
 
     async def _async_update_data(self):
@@ -91,7 +95,7 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
         data = {}
         # Note: asyncio.TimeoutError and aiohttp.ClientError are already
         # handled by the data update coordinator.
-        async with async_timeout.timeout(ASYNC_TIMEOUT):                        
+        async with async_timeout.timeout(ASYNC_TIMEOUT):
 
             # API is failing, try to recreate session
             if self.api_fail_count > 0:
@@ -102,7 +106,9 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 except UnexpectedResponse as error:
                     _LOGGER.debug("Unable to get session id.")
                     await self._recreate_bridge()
-                    raise UpdateFailed("Unable to get session ID. JablotronPy bridge recreated.") from error
+                    raise UpdateFailed(
+                        "Unable to get session ID. JablotronPy bridge recreated."
+                    ) from error
 
                 if not session_id:
                     _LOGGER.debug("Invalid session id.")
@@ -123,7 +129,9 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Failed to get services!") from error
 
             if not services:
-                _LOGGER.info("No services discovered for this jablotron account. No entities will be generated.")
+                _LOGGER.info(
+                    "No services discovered for this jablotron account. No entities will be generated."
+                )
                 return data
 
             for service in services:
@@ -132,7 +140,11 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
 
                 _LOGGER.debug("Loading data for service %d", service_id)
                 if service_type in SERVICES_WITHOUT_PG:
-                    _LOGGER.debug("Service type %s not supported. Skipping service %d", service_type, service_id)
+                    _LOGGER.debug(
+                        "Service type %s not supported. Skipping service %d",
+                        service_type,
+                        service_id,
+                    )
                     continue
 
                 try:
@@ -142,16 +154,22 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 except UnexpectedResponse as error:
                     self.api_fail_count += 1
                     _LOGGER.debug(f"Failed to get gates data for service {service_id}")
-                    raise UpdateFailed(f"Failed to get gates data for service {service_id}") from error
+                    raise UpdateFailed(
+                        f"Failed to get gates data for service {service_id}"
+                    ) from error
 
                 try:
                     sections = await self.hass.async_add_executor_job(
                         self.bridge.get_sections, service_id, service_type
                     )
-                except UnexpectedResponse as error:                    
+                except UnexpectedResponse as error:
                     self.api_fail_count += 1
-                    _LOGGER.debug(f"Failed to get section data for service {service_id}")
-                    raise UpdateFailed(f"Failed to get section data for service {service_id}") from error                                        
+                    _LOGGER.debug(
+                        f"Failed to get section data for service {service_id}"
+                    )
+                    raise UpdateFailed(
+                        f"Failed to get section data for service {service_id}"
+                    ) from error
 
                 try:
                     thermo_devices = await self.hass.async_add_executor_job(
@@ -160,8 +178,9 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 except UnexpectedResponse as error:
                     self.api_fail_count += 1
                     _LOGGER.debug(f"Failed to get thermo data for service {service_id}")
-                    raise UpdateFailed(f"Failed to get thermo data for service {service_id}") from error
-
+                    raise UpdateFailed(
+                        f"Failed to get thermo data for service {service_id}"
+                    ) from error
 
                 data[service_id] = {}
                 data[service_id]["service"] = service
@@ -170,8 +189,12 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 data[service_id]["thermo"] = thermo_devices
 
                 _LOGGER.debug("Service %d successfuly updated.", service_id)
-                if self.is_first_update:                    
-                    _LOGGER.debug("Service %d discovered. Data: %s", service_id, str(data[service_id]))
+                if self.is_first_update:
+                    _LOGGER.debug(
+                        "Service %d discovered. Data: %s",
+                        service_id,
+                        str(data[service_id]),
+                    )
 
-            self.is_first_update = False            
+            self.is_first_update = False
             return data

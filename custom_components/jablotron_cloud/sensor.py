@@ -1,4 +1,5 @@
 """Support for controllable Jablotron PG sensors."""
+
 from __future__ import annotations
 
 import logging

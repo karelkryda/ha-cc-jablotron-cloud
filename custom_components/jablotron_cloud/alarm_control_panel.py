@@ -1,4 +1,5 @@
 """Support for Jablotron alarm control panels."""
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +7,8 @@ import logging
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
-    CodeFormat, AlarmControlPanelState,
+    CodeFormat,
+    AlarmControlPanelState,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -42,14 +44,18 @@ async def async_setup_entry(
         sections_data = service_data["sections"]
         if not sections_data:
             _LOGGER.debug(
-                "Jablotron sections date are empty, skipping service: %s:%s", service_id, service["name"]
+                "Jablotron sections date are empty, skipping service: %s:%s",
+                service_id,
+                service["name"],
             )
             continue
 
         sections = sections_data["sections"]
         if not sections:
             _LOGGER.debug(
-                "Jablotron section date are empty, skipping service: %s:%s", service_id, service["name"]
+                "Jablotron section date are empty, skipping service: %s:%s",
+                service_id,
+                service["name"],
             )
             continue
 
@@ -110,7 +116,7 @@ class JablotronAlarmControlPanel(
         self._can_partial_arm = partial_arm_enabled
         self._need_authorization = need_authorization
         self._attr_unique_id = f"{service_id} {component_id}"
-        self._attr_name = friendly_name        
+        self._attr_name = friendly_name
         self._service_type = self.coordinator.data[service_id]["service"][SERVICE_TYPE]
 
     @property
@@ -162,7 +168,11 @@ class JablotronAlarmControlPanel(
         self._setup_pin(code)
 
         self.coordinator.bridge.control_component(
-            self._service_id, self._component_id, Actions.ARM, self._service_type, force=True
+            self._service_id,
+            self._component_id,
+            Actions.ARM,
+            self._service_type,
+            force=True,
         )
         self._attr_alarm_state = AlarmControlPanelState.ARMING
         self.schedule_update_ha_state()
@@ -179,7 +189,7 @@ class JablotronAlarmControlPanel(
             self._component_id,
             Actions.PARTIAL_ARM,
             self._service_type,
-            force=True
+            force=True,
         )
         self._attr_alarm_state = AlarmControlPanelState.ARMING
         self.schedule_update_ha_state()

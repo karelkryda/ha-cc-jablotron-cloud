@@ -2,14 +2,14 @@
   "domain": "jablotron_cloud",
   "name": "Jablotron Cloud",
   "codeowners": ["@pigotka"],
-  "config_flow": true,    
+  "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/Pigotka/ha-cc-jablotron-cloud",  
+  "documentation": "https://github.com/Pigotka/ha-cc-jablotron-cloud",
   "homekit": {},
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Pigotka/ha-cc-jablotron-cloud/issues",
   "requirements": ["jablotronpy==0.6.4"],
-  "ssdp": [],  
+  "ssdp": [],
   "version": "0.6.8",
   "zeroconf": []
 }
