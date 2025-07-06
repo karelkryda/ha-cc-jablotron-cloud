@@ -1,20 +1,26 @@
-"""Constants for the Jablotron Cloud integration."""
+"""Constants for Jablotron Cloud integration."""
 
 from enum import StrEnum
 
+from homeassistant.const import Platform
+
+# Integration constants
 DOMAIN = "jablotron_cloud"
+SERVICES_WITHOUT_PG = ["FUTURA2", "AMBIENTA", "VOLTA", "LOGBOOK"]
+PLATFORMS: list[Platform] = [
+    Platform.ALARM_CONTROL_PANEL,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.SENSOR,
+]
 
-SERVICE_ID = "service-id"
+# API constants
 SERVICE_TYPE = "service-type"
-
 COMP_ID = "cloud-component-id"
 DEVICE_ID = "object-device-id"
-PG_STATE = "state"
-PG_STATE_OFF = "OFF"
-
-SERVICES_WITHOUT_PG = ["FUTURA2", "AMBIENTA", "VOLTA", "LOGBOOK"]
 
 
+# Alarm control panel constants
 class Actions(StrEnum):
     """Actions to control sections."""
 

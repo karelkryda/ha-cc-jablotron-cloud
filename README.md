@@ -6,11 +6,9 @@
 
 ![Jablotron logo](https://github.com/Pigotka/ha-cc-jablotron-cloud/blob/main/logo.png)
 
-
 # Jablotron Cloud
 
-HACS custom component for jablotron cloud integration
-
+HACS custom component for Jablotron cloud integration
 
 ## About
 
@@ -18,12 +16,12 @@ Integration works with MyJablotron web service available on https://www.jablonet
 
 **This component will set up the following platforms.**
 
-| Platform         | Description                         |
-| ---------------- | ----------------------------------- |
-| `binary_sensor`| To show uncontrollable programmable gates (PG) .   |
-| `switch`| To controll programmable gates (PG) .   |
-| `alarm_control_panel`| To enable ARM/DISARM on individual sections. |
-| `sensor`| To support temperature and electricity sensors. |
+| Platform              | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `binary_sensor`       | To show uncontrollable programmable gates (PGs) |
+| `switch`              | To control programmable gates (PGs)             |
+| `alarm_control_panel` | To enable ARM/DISARM on individual sections     |
+| `sensor`              | To support temperature and electricity sensors  |
 
 ## HACS Installation
 
@@ -46,12 +44,13 @@ Integration works with MyJablotron web service available on https://www.jablonet
 
 To configure integration please fill credentials you use to access your MyJablotron web page or mobile app.
 
-**Following fields needs to be filled:**
+**The configuration consists of the following parameters:**
 
-| Field         | Description                         |
-| ---------------- | ----------------------------------- |
-| `username` | Email associated with Jablotron cloud.   |
-| `password` | Password use to login into the webpage. |
+| Field      | Description                                         |
+| ---------- | --------------------------------------------------- |
+| `username` | Email associated with Jablotron Cloud account       |
+| `password` | Password for Jablotron Cloud account                |
+| `pin`      | Default pin used **ONLY** to control PGs (optional) |
 
 ## Supported functionality
 
