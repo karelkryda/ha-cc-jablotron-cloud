@@ -1,21 +1,29 @@
 {
     "config": {
-        "abort": {
-            "already_configured": "Zařízení je již nakonfigurováno"
-        },
-        "error": {
-            "cannot_connect": "Není možné se připojit",
-            "invalid_auth": "Nesprávné přihlašovací údaje",
-            "unknown": "Neočekávaná chyba"
-        },
         "step": {
             "user": {
                 "data": {
-                    "pin": "PIN",
+                    "username": "Uživatelské jméno",
                     "password": "Heslo",
-                    "username": "Uživatelské jméno"
+                    "pin": "PIN",
+                    "scan_interval": "Interval aktualizací"
+                }
+            },
+            "reconfigure": {
+                "data": {
+                    "username": "Uživatelské jméno",
+                    "password": "Heslo",
+                    "pin": "PIN",
+                    "scan_interval": "Interval aktualizací"
                 }
             }
+        },
+        "error": {
+            "invalid_auth": "Chybné přihlašovací údaje k Jablotron Cloudu"
+        },
+        "abort": {
+            "already_configured": "Zařízení již bylo nakonfigurováno",
+            "reconfigure_successful": "Zařízení bylo úspěšně rekonfigurováno"
         }
     }
 }
