@@ -1,76 +1,109 @@
 """Config flow for Jablotron Cloud integration."""
 
-from __future__ import annotations
-
 import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME
-from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
+from jablotronpy import UnauthorizedException
 
 from .const import DOMAIN
-from .jablotron import JablotronClient, UnexpectedResponse
+from .jablotron import JablotronClient
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-        vol.Optional(CONF_PIN, default=""): str,
-    }
-)
+
+def get_schema(username: str = "", pin: str = "", scan_interval: int = 30) -> vol.Schema:
+    """Return config flow schema."""
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_USERNAME, default=username): str,
+            vol.Required(CONF_PASSWORD): str,
+            vol.Optional(CONF_PIN, default=pin): str,
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int
+        }
+    )
 
 
-async def test_credentials(hass: HomeAssistant, data: dict) -> None:
+def validate_credentials(user_input: dict) -> None:
     """Validate that user entered valid credentials."""
 
     # Initialize Jablotron client and validate entered credentials
-    client = JablotronClient(data[CONF_USERNAME], data[CONF_PASSWORD])
-    bridge = client.get_bridge()
-    try:
-        await hass.async_add_executor_job(bridge.get_session_id)
-    except UnexpectedResponse as ex:
-        raise InvalidAuth from ex
+    client = JablotronClient(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+    client.get_bridge()
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle config flow for Jablotron Cloud."""
 
-    VERSION = 2
+    # Define configuration version
+    VERSION = 3
+    MINOR_VERSION = 1
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """User flow to configure Jablotron Cloud integration."""
 
-        # Keep the form open if no user input is provided
+        # Open configuration dialog
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=CONFIG_SCHEMA)
+            return self.async_show_form(step_id="user", data_schema=get_schema())
 
-        # Validate user input and fail if credentials are invalid
+        # Validate entered credentials and reopen dialog if they are not valid
         try:
-            await test_credentials(self.hass, user_input)
-        except InvalidAuth:
+            _LOGGER.debug("Validating Jablotron Cloud credentials")
+            await self.hass.async_add_executor_job(validate_credentials, user_input)
+        except UnauthorizedException:
             return self.async_show_form(
                 step_id="user",
-                data_schema=CONFIG_SCHEMA,
-                errors={"base": "invalid_auth"},
-            )
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception(
-                "Unexpected error occurred during credentials validation!"
-            )
-
-            return self.async_show_form(
-                step_id="user",
-                data_schema=CONFIG_SCHEMA,
-                errors={"base": "unknown"},
+                data_schema=get_schema(
+                    user_input[CONF_USERNAME],
+                    user_input[CONF_PIN],
+                    user_input[CONF_SCAN_INTERVAL]
+                ),
+                errors={"base": "invalid_auth"}
             )
         else:
+            _LOGGER.info("Jablotron Cloud integration successfully configured")
             return self.async_create_entry(title="Jablotron Cloud", data=user_input)
 
+    async def async_step_reconfigure(self, user_input: dict | None = None) -> FlowResult:
+        """User flow to reconfigure Jablotron Cloud integration."""
 
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate that user entered invalid credentials."""
+        # Get existing configuration
+        config_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+
+        # Open reconfiguration dialog
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reconfigure",
+                data_schema=get_schema(
+                    config_entry.data[CONF_USERNAME],
+                    config_entry.data[CONF_PIN],
+                    config_entry.data[CONF_SCAN_INTERVAL]
+                )
+            )
+
+        # Validate entered credentials and reopen dialog if they are not valid
+        try:
+            _LOGGER.debug("Validating Jablotron Cloud credentials")
+            await self.hass.async_add_executor_job(validate_credentials, user_input)
+        except UnauthorizedException:
+            return self.async_show_form(
+                step_id="reconfigure",
+                data_schema=get_schema(
+                    user_input[CONF_USERNAME],
+                    user_input[CONF_PIN],
+                    user_input[CONF_SCAN_INTERVAL]
+                ),
+                errors={"base": "invalid_auth"}
+            )
+        else:
+            _LOGGER.info("Jablotron Cloud integration successfully reconfigured")
+            return self.async_update_reload_and_abort(
+                config_entry,
+                unique_id=config_entry.unique_id,
+                data={**config_entry.data, **user_input}
+            )
