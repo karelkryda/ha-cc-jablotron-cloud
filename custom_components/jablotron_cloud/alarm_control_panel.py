@@ -8,7 +8,7 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
     AlarmControlPanelState,
-    CodeFormat,
+    CodeFormat
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up alarm panel for Jablotron Cloud from config entry."""
 
@@ -73,7 +73,7 @@ async def async_setup_entry(
                         service_id,
                         section_id,
                         partial_arm_enabled,
-                        requires_authorization,
+                        requires_authorization
                     )
                 )
 
@@ -88,7 +88,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 class JablotronAlarmControlPanel(
     CoordinatorEntity[JablotronDataCoordinator],
-    AlarmControlPanelEntity,
+    AlarmControlPanelEntity
 ):
     """Representation of Jablotron Cloud alarm panel."""
 
@@ -101,7 +101,7 @@ class JablotronAlarmControlPanel(
         service_id: int,
         section_id: str,
         partial_arm_enabled: bool,
-        requires_authorization: bool,
+        requires_authorization: bool
     ) -> None:
         """Initialize Jablotron alarm panel."""
 
@@ -154,7 +154,7 @@ class JablotronAlarmControlPanel(
             },
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type,
+            model=self._service_type
         )
 
     def alarm_disarm(self, code: str | None = None) -> None:

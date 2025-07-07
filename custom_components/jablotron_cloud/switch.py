@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up programmable gate switch for Jablotron Cloud from config entry."""
 
@@ -75,7 +75,7 @@ class JablotronProgrammableGate(
         coordinator: JablotronDataCoordinator,
         friendly_name: str,
         service_id: int,
-        gate_id: str,
+        gate_id: str
     ) -> None:
         """Initialize Jablotron programmable gate binary sensor."""
 
@@ -102,7 +102,7 @@ class JablotronProgrammableGate(
             },
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type,
+            model=self._service_type
         )
 
     def turn_on(self, **kwargs) -> None:

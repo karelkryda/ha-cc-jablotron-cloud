@@ -7,7 +7,7 @@ import logging
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
-    SensorStateClass,
+    SensorStateClass
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up temperature sensor for Jablotron Cloud from config entry."""
 
@@ -50,7 +50,7 @@ async def async_setup_entry(
                 JablotronSensor(
                     coordinator,
                     service_id,
-                    device_id,
+                    device_id
                 )
             )
 
@@ -74,7 +74,7 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
         self: JablotronSensor,
         coordinator: JablotronDataCoordinator,
         service_id: int,
-        device_id: str,
+        device_id: str
     ) -> None:
         """Initialize Jablotron temperature sensor."""
 
@@ -101,7 +101,7 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
             },
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type,
+            model=self._service_type
         )
 
     @callback

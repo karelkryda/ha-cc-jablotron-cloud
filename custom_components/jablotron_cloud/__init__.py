@@ -68,7 +68,7 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name="Jablotron Cloud",
-            update_interval=timedelta(seconds=30),
+            update_interval=timedelta(seconds=30)
         )
 
     @property
@@ -103,7 +103,7 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                     _LOGGER.debug(
                         "Service type '%s' is not supported, skipping update for service '%d'!",
                         service_type,
-                        service_id,
+                        service_id
                     )
 
                     continue
