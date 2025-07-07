@@ -13,12 +13,6 @@ class JablotronClient:
         self._password = password
         self._default_pin = default_pin
 
-    @property
-    def default_pin(self):
-        """Return default pin for Jablotron Cloud API."""
-
-        return self._default_pin
-
     def get_bridge(self) -> Jablotron:
         """Return Jablotron bridge instance."""
 
