@@ -50,6 +50,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update listener."""
+
     await hass.config_entries.async_reload(entry.entry_id)
 
 
@@ -70,16 +71,20 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
 
+    @property
+    def client(self):
+        """Return Jablotron Cloud client instance."""
+
+        return self._client
+
     async def _async_update_data(self) -> dict:
         """Fetch data from Jablotron Cloud API."""
 
         async with timeout(120):
-            bridge = self._client.get_bridge()
+            bridge = await self.hass.async_add_executor_job(self.client.get_bridge)
 
             # Get services from Jablotron Cloud
-            services = await self.hass.async_add_executor_job(
-                self._client.get_services, bridge
-            )
+            services = await self.hass.async_add_executor_job(bridge.get_services)
 
             # Log that no services were discovered
             if not services:
@@ -105,18 +110,14 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
 
                 # Fetch gates for the service
                 _LOGGER.debug("Updating data for service '%d'", service_id)
-                gates = await self.hass.async_add_executor_job(
-                    self._client.get_gates, bridge, service_id, service_type
-                )
+                gates = await self.hass.async_add_executor_job(bridge.get_programmable_gates, service_id, service_type)
 
                 # Fetch sections for the service
-                sections = await self.hass.async_add_executor_job(
-                    self._client.get_sections, bridge, service_id, service_type
-                )
+                sections = await self.hass.async_add_executor_job(bridge.get_sections, service_id, service_type)
 
                 # Fetch thermo devices for the service
                 thermo_devices = await self.hass.async_add_executor_job(
-                    self._client.get_thermo_devices, bridge, service_id, service_type
+                    bridge.get_thermo_devices, service_id, service_type
                 )
 
                 # Save fetched service data

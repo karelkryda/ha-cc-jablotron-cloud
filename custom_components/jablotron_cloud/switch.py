@@ -109,12 +109,13 @@ class JablotronProgrammableGate(
         """Send turn on request."""
 
         # Send request to the bridge
-        client = self._coordinator._client
-        bridge = client.get_bridge(client._default_pin)
+        client = self._coordinator.client
+        bridge = client.get_bridge()
         bridge.control_programmable_gate(
             service_id=self._service_id,
             component_id=self._gate_id,
-            on=True,
+            state="ON",
+            pin_code=client.default_pin
         )
 
         # Update the state and schedule an update
@@ -125,12 +126,13 @@ class JablotronProgrammableGate(
         """Send turn off request."""
 
         # Send request to the bridge
-        client = self._coordinator._client
-        bridge = client.get_bridge(client._default_pin)
+        client = self._coordinator.client
+        bridge = client.get_bridge()
         bridge.control_programmable_gate(
             service_id=self._service_id,
             component_id=self._gate_id,
-            on=False,
+            state="OFF",
+            pin_code=client.default_pin
         )
 
         # Update the state and schedule an update

@@ -162,12 +162,13 @@ class JablotronAlarmControlPanel(
 
         # Send request to the bridge
         code = self.code_or_default_code(code)
-        bridge = self._coordinator._client.get_bridge(code)
-        bridge.control_component(
+        bridge = self._coordinator.client.get_bridge()
+        bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
             state=Actions.DISARM,
+            pin_code=code
         )
 
         # Update the state and schedule an update
@@ -179,13 +180,14 @@ class JablotronAlarmControlPanel(
 
         # Send request to the bridge
         code = self.code_or_default_code(code)
-        bridge = self._coordinator._client.get_bridge(code)
-        bridge.control_component(
+        bridge = self._coordinator.client.get_bridge()
+        bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
             state=Actions.ARM,
-            force=True,
+            pin_code=code,
+            force=True
         )
 
         # Update the state and schedule an update
@@ -200,13 +202,14 @@ class JablotronAlarmControlPanel(
 
         # Send request to the bridge
         code = self.code_or_default_code(code)
-        bridge = self._coordinator._client.get_bridge(code)
-        bridge.control_component(
+        bridge = self._coordinator.client.get_bridge()
+        bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
             state=Actions.PARTIAL_ARM,
-            force=True,
+            pin_code=code,
+            force=True
         )
 
         # Update the state and schedule an update
