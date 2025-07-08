@@ -11,9 +11,9 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/Pigotka/ha-cc-jablotron-cloud/issues",
     "requirements": [
-        "jablotronpy==0.6.4"
+        "jablotronpy==0.7.0"
     ],
     "ssdp": [],
-    "version": "0.6.8",
+    "version": "0.7.0",
     "zeroconf": []
 }

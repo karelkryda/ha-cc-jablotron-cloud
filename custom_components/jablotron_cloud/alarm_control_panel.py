@@ -163,7 +163,7 @@ class JablotronAlarmControlPanel(
         # Send request to the bridge
         code = self.code_or_default_code(code)
         bridge = self._coordinator.client.get_bridge()
-        bridge.control_section(
+        action_successful = bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
@@ -171,50 +171,56 @@ class JablotronAlarmControlPanel(
             pin_code=code
         )
 
-        # Update the state and schedule an update
-        self._attr_alarm_state = AlarmControlPanelState.DISARMING
-        self.schedule_update_ha_state()
+        # Update the state and schedule an update on successful control action
+        if action_successful:
+            self._attr_alarm_state = AlarmControlPanelState.DISARMING
+            self.schedule_update_ha_state()
 
     def alarm_arm_away(self, code: str | None = None) -> None:
-        """Send forced arm request."""
+        """Send arm request."""
 
         # Send request to the bridge
         code = self.code_or_default_code(code)
-        bridge = self._coordinator.client.get_bridge()
-        bridge.control_section(
+        client = self._coordinator.client
+        bridge = client.get_bridge()
+        action_successful = bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
             state=Actions.ARM,
             pin_code=code,
-            force=True
+            force=client.force_arm
         )
 
-        # Update the state and schedule an update
-        self._attr_alarm_state = AlarmControlPanelState.ARMING
-        self.schedule_update_ha_state()
+        # Update the state and schedule an update on successful control action
+        if action_successful:
+            self._attr_alarm_state = AlarmControlPanelState.ARMING
+            self.schedule_update_ha_state()
 
     def alarm_arm_home(self, code: str | None = None) -> None:
-        """Send forced partial arm request."""
+        """Send partial arm request."""
+
         if not self._supports_partial_arm:
             _LOGGER.error("This action is not supported for this section!")
             return
 
         # Send request to the bridge
         code = self.code_or_default_code(code)
-        bridge = self._coordinator.client.get_bridge()
-        bridge.control_section(
+        client = self._coordinator.client
+        bridge = client.get_bridge()
+        action_successful = bridge.control_section(
             service_id=self._service_id,
             service_type=self._service_type,
             component_id=self._section_id,
             state=Actions.PARTIAL_ARM,
             pin_code=code,
-            force=True
+            force=client.force_arm
         )
 
-        # Update the state and schedule an update
-        self._attr_alarm_state = AlarmControlPanelState.ARMING
-        self.schedule_update_ha_state()
+        # Update the state and schedule an update on successful control action
+        if action_successful:
+            self._attr_alarm_state = AlarmControlPanelState.ARMING
+            self.schedule_update_ha_state()
 
     @callback
     def _handle_coordinator_update(self) -> None:

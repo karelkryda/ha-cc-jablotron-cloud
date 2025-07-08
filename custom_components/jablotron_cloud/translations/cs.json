@@ -6,7 +6,9 @@
                     "username": "Uživatelské jméno",
                     "password": "Heslo",
                     "pin": "PIN",
-                    "scan_interval": "Interval aktualizací"
+                    "force_update": "Vynutit zabezpečení",
+                    "scan_interval": "Interval aktualizací (sekund)",
+                    "timeout": "Časový limit aktualizace (sekund)"
                 }
             },
             "reconfigure": {
@@ -14,7 +16,9 @@
                     "username": "Uživatelské jméno",
                     "password": "Heslo",
                     "pin": "PIN",
-                    "scan_interval": "Interval aktualizací"
+                    "force_update": "Vynutit zabezpečení",
+                    "scan_interval": "Interval aktualizací (sekund)",
+                    "timeout": "Časový limit aktualizace (sekund)"
                 }
             }
         },

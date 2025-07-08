@@ -6,7 +6,9 @@
                     "username": "Username",
                     "password": "Password",
                     "pin": "PIN",
-                    "scan_interval": "Update interval"
+                    "force_update": "Force arm",
+                    "scan_interval": "Update interval (seconds)",
+                    "timeout": "Update timeout (seconds)"
                 }
             },
             "reconfigure": {
@@ -14,7 +16,9 @@
                     "username": "Username",
                     "password": "Password",
                     "pin": "PIN",
-                    "scan_interval": "Update interval"
+                    "force_update": "Force arm",
+                    "scan_interval": "Update interval (seconds)",
+                    "timeout": "Update timeout (seconds)"
                 }
             }
         },

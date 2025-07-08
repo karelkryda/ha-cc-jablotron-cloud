@@ -4,7 +4,8 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL, CONF_TIMEOUT, \
+    CONF_FORCE_UPDATE
 from homeassistant.data_entry_flow import FlowResult
 from jablotronpy import UnauthorizedException
 
@@ -14,7 +15,13 @@ from .jablotron import JablotronClient
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_schema(username: str = "", pin: str = "", scan_interval: int = 30) -> vol.Schema:
+def get_schema(
+    username: str = "",
+    pin: str = "",
+    force_arm: bool = True,
+    scan_interval: int = 30,
+    scan_timeout: int = 30
+) -> vol.Schema:
     """Return config flow schema."""
 
     return vol.Schema(
@@ -22,7 +29,9 @@ def get_schema(username: str = "", pin: str = "", scan_interval: int = 30) -> vo
             vol.Required(CONF_USERNAME, default=username): str,
             vol.Required(CONF_PASSWORD): str,
             vol.Optional(CONF_PIN, default=pin): str,
-            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int
+            vol.Optional(CONF_FORCE_UPDATE, default=force_arm): bool,
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int,
+            vol.Optional(CONF_TIMEOUT, default=scan_timeout): int
         }
     )
 
@@ -59,7 +68,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=get_schema(
                     user_input[CONF_USERNAME],
                     user_input[CONF_PIN],
-                    user_input[CONF_SCAN_INTERVAL]
+                    user_input[CONF_FORCE_UPDATE],
+                    user_input[CONF_SCAN_INTERVAL],
+                    user_input[CONF_TIMEOUT]
                 ),
                 errors={"base": "invalid_auth"}
             )
@@ -82,7 +93,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=get_schema(
                     config_entry.data[CONF_USERNAME],
                     config_entry.data[CONF_PIN],
-                    config_entry.data[CONF_SCAN_INTERVAL]
+                    config_entry.data[CONF_FORCE_UPDATE],
+                    config_entry.data[CONF_SCAN_INTERVAL],
+                    config_entry.data[CONF_TIMEOUT]
                 )
             )
 
@@ -96,7 +109,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=get_schema(
                     user_input[CONF_USERNAME],
                     user_input[CONF_PIN],
-                    user_input[CONF_SCAN_INTERVAL]
+                    user_input[CONF_FORCE_UPDATE],
+                    user_input[CONF_SCAN_INTERVAL],
+                    user_input[CONF_TIMEOUT]
                 ),
                 errors={"base": "invalid_auth"}
             )

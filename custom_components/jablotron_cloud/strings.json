@@ -6,7 +6,9 @@
                     "username": "[%key:common::config_flow::data::username%]",
                     "password": "[%key:common::config_flow::data::password%]",
                     "pin": "[%key:common::config_flow::data::pin%]",
-                    "scan_interval": "[%key:common::config_flow::data::scan_interval%]"
+                    "force_update": "[%key:common::config_flow::data::force_update%]",
+                    "scan_interval": "[%key:common::config_flow::data::scan_interval%]",
+                    "timeout": "[%key:common::config_flow::data::timeout%]"
                 }
             },
             "reconfigure": {
@@ -14,7 +16,9 @@
                     "username": "[%key:common::config_flow::data::username%]",
                     "password": "[%key:common::config_flow::data::password%]",
                     "pin": "[%key:common::config_flow::data::pin%]",
-                    "scan_interval": "[%key:common::config_flow::data::scan_interval%]"
+                    "force_update": "[%key:common::config_flow::data::force_update%]",
+                    "scan_interval": "[%key:common::config_flow::data::scan_interval%]",
+                    "timeout": "[%key:common::config_flow::data::timeout%]"
                 }
             }
         },

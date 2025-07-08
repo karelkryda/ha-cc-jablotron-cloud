@@ -7,7 +7,8 @@ from asyncio import timeout
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL, CONF_TIMEOUT, \
+    CONF_FORCE_UPDATE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -24,11 +25,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username: str = entry.data[CONF_USERNAME]
     password: str = entry.data[CONF_PASSWORD]
     default_pin: str = entry.data[CONF_PIN]
+    force_arm: bool = entry.data[CONF_FORCE_UPDATE]
     scan_interval: int = entry.data[CONF_SCAN_INTERVAL]
-    client = JablotronClient(username, password, default_pin)
+    scan_timeout: int = entry.data[CONF_TIMEOUT]
+    client = JablotronClient(username, password, default_pin, force_arm)
 
     _LOGGER.debug("Preparing Jablotron data update coordinator")
-    coordinator = JablotronDataCoordinator(hass, client, scan_interval)
+    coordinator = JablotronDataCoordinator(hass, client, scan_interval, scan_timeout)
 
     await coordinator.async_config_entry_first_refresh()
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -69,9 +72,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     # Modify config entry based on previous version
     _LOGGER.debug("Migrating configuration from version %s.%s", version, minor_version)
     new_data = config_entry.data.copy()
-    # Add default value for 'scan_interval'
+    # Add default values for 'force_update', 'scan_interval' and 'timeout'
     if version == 2:
+        new_data[CONF_FORCE_UPDATE] = True
         new_data[CONF_SCAN_INTERVAL] = 30
+        new_data[CONF_TIMEOUT] = 30
 
     hass.config_entries.async_update_entry(config_entry, data=new_data, minor_version=1, version=3)
     _LOGGER.info("Migration to version %s.%s successful", config_entry.version, config_entry.minor_version)
@@ -81,11 +86,13 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 class JablotronDataCoordinator(DataUpdateCoordinator):
     """Data coordinator around Jablotron Cloud API."""
 
-    def __init__(self, hass: HomeAssistant, client: JablotronClient, scan_interval: int) -> None:
+    def __init__(self, hass: HomeAssistant, client: JablotronClient, scan_interval: int, scan_timeout: int) -> None:
         """Initialize Home Assistant data update coordinator."""
 
         # Define coordinator attributes
         self._client = client
+        self._scan_interval = scan_interval
+        self._scan_timeout = scan_timeout
 
         # Initialize data update coordinator
         super().__init__(
@@ -104,7 +111,7 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Fetch data from Jablotron Cloud API."""
 
-        async with timeout(120):
+        async with timeout(self._scan_timeout):
             bridge = await self.hass.async_add_executor_job(self.client.get_bridge)
 
             # Get services from Jablotron Cloud
