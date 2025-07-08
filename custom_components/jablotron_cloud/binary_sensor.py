@@ -67,6 +67,7 @@ class JablotronProgrammableGate(
 ):
     """Representation of Jablotron programmable gate."""
 
+    _attr_should_poll = False
     _attr_has_entity_name = True
 
     def __init__(

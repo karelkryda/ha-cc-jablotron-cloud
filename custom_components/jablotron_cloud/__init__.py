@@ -76,7 +76,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if version == 2:
         new_data[CONF_FORCE_UPDATE] = True
         new_data[CONF_SCAN_INTERVAL] = 30
-        new_data[CONF_TIMEOUT] = 30
+        new_data[CONF_TIMEOUT] = 15
 
     hass.config_entries.async_update_entry(config_entry, data=new_data, minor_version=1, version=3)
     _LOGGER.info("Migration to version %s.%s successful", config_entry.version, config_entry.minor_version)

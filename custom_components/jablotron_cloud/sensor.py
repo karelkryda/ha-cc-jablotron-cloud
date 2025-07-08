@@ -66,6 +66,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity):
     """Representation of Jablotron temperature sensor."""
 
+    _attr_should_poll = False
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS

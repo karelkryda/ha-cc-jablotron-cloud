@@ -67,6 +67,7 @@ class JablotronProgrammableGate(
 ):
     """Representation of Jablotron programmable gate."""
 
+    _attr_should_poll = False
     _attr_has_entity_name = True
     _attr_device_class = SwitchDeviceClass.SWITCH
 
@@ -118,7 +119,7 @@ class JablotronProgrammableGate(
 
         # Update the state and schedule an update
         self._attr_is_on = True
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()
 
     def turn_off(self, **kwargs) -> None:
         """Send turn off request."""
@@ -133,7 +134,7 @@ class JablotronProgrammableGate(
 
         # Update the state and schedule an update
         self._attr_is_on = False
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()
 
     @callback
     def _handle_coordinator_update(self) -> None:

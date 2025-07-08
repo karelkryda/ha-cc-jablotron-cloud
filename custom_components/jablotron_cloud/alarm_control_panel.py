@@ -92,6 +92,7 @@ class JablotronAlarmControlPanel(
 ):
     """Representation of Jablotron Cloud alarm panel."""
 
+    _attr_should_poll = False
     _attr_has_entity_name = True
 
     def __init__(
@@ -174,7 +175,7 @@ class JablotronAlarmControlPanel(
         # Update the state and schedule an update on successful control action
         if action_successful:
             self._attr_alarm_state = AlarmControlPanelState.DISARMING
-            self.schedule_update_ha_state()
+            self.async_write_ha_state()
 
     def alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm request."""
@@ -195,7 +196,7 @@ class JablotronAlarmControlPanel(
         # Update the state and schedule an update on successful control action
         if action_successful:
             self._attr_alarm_state = AlarmControlPanelState.ARMING
-            self.schedule_update_ha_state()
+            self.async_write_ha_state()
 
     def alarm_arm_home(self, code: str | None = None) -> None:
         """Send partial arm request."""
@@ -220,7 +221,7 @@ class JablotronAlarmControlPanel(
         # Update the state and schedule an update on successful control action
         if action_successful:
             self._attr_alarm_state = AlarmControlPanelState.ARMING
-            self.schedule_update_ha_state()
+            self.async_write_ha_state()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -254,4 +255,4 @@ class JablotronAlarmControlPanel(
             case _:
                 self._attr_alarm_state = STATE_UNKNOWN
 
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()

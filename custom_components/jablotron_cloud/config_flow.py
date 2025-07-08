@@ -20,7 +20,7 @@ def get_schema(
     pin: str = "",
     force_arm: bool = True,
     scan_interval: int = 30,
-    scan_timeout: int = 30
+    scan_timeout: int = 15
 ) -> vol.Schema:
     """Return config flow schema."""
 
