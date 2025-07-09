@@ -5,15 +5,15 @@
         "@pigotka"
     ],
     "config_flow": true,
-    "dependencies": [],
     "documentation": "https://github.com/Pigotka/ha-cc-jablotron-cloud",
-    "homekit": {},
+    "integration_type": "hub",
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/Pigotka/ha-cc-jablotron-cloud/issues",
+    "loggers": [
+        "custom_components.jablotron_cloud"
+    ],
     "requirements": [
         "jablotronpy==0.7.0"
     ],
-    "ssdp": [],
-    "version": "0.7.0",
-    "zeroconf": []
+    "version": "0.7.0"
 }

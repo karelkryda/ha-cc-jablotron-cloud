@@ -2,9 +2,13 @@
 
 from jablotronpy import Jablotron
 
+from .types import JablotronServiceData
+
 
 class JablotronClient:
     """Client for Jablotron Cloud API."""
+
+    services: dict[int, JablotronServiceData] = {}
 
     def __init__(self, username: str, password: str, default_pin: str | None = None, force_arm: bool = True) -> None:
         """Initialize Jablotron client."""

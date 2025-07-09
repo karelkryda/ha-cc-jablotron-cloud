@@ -10,87 +10,95 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelState,
     CodeFormat
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from jablotronpy import JablotronSectionsState
 
-from . import JablotronDataCoordinator
-from .const import COMP_ID, DOMAIN, SERVICE_TYPE, Actions
+from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator
+from .const import COMP_ID, DOMAIN, Actions, STATE_AS_ALARM_STATE
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def state_to_alarm_state(state: JablotronSectionsState | None) -> AlarmControlPanelState:
+    """Convert state to AlarmControlPanelState."""
+
+    return STATE_AS_ALARM_STATE.get(state["state"], STATE_UNKNOWN)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: JablotronConfigEntry,
     async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up alarm panel for Jablotron Cloud from config entry."""
+    """Register alarm panel entity for each Jablotron service section."""
 
-    coordinator: JablotronDataCoordinator = hass.data[DOMAIN][entry.entry_id]
-    services: dict[int, dict] = coordinator.data
+    _LOGGER.debug("Adding Jablotron alarm control panel entities")
+    runtime_data: JablotronData = entry.runtime_data
+    # TODO: coordinator and services like this??
+    coordinator = runtime_data.coordinator
+    services = runtime_data.client.services
 
-    if not services:
-        return
-
-    # Prepare entities to be created
+    # Get sections for each service
     entities: list[JablotronAlarmControlPanel] = []
     for service_id, service_data in services.items():
-        service_name: str = service_data["service"]["name"]
-        _LOGGER.debug("Discovered service '%s' as '%d'", service_name, service_id)
+        # Get service details
+        service_name = service_data["name"]
+        service_type = service_data["type"]
 
-        sections_data: dict = service_data["sections"]
-        if not sections_data:
-            _LOGGER.debug("Sections data are empty, skipping service '%d'", service_id)
-
-            continue
-
-        sections: list[dict] = sections_data["sections"]
-        if not sections:
-            _LOGGER.debug("Sections are empty, skipping service '%d'", service_id)
-
-            continue
-
-        # Add all controllable sections as entities
-        for section in sections:
-            section_controllable: bool = section["can-control"]
-
-            if section_controllable:
-                friendly_name: str = section["name"]
-                section_id: str = section[COMP_ID]
-                partial_arm_enabled = bool(section["partial-arm-enabled"])
-                requires_authorization = bool(section["need-authorization"])
-
-                # Add controllable section entity
-                _LOGGER.debug("Adding controllable section '%s'", friendly_name)
-                entities.append(
-                    JablotronAlarmControlPanel(
-                        coordinator,
-                        friendly_name,
-                        service_id,
-                        section_id,
-                        partial_arm_enabled,
-                        requires_authorization
-                    )
+        # Add all controllable section entities
+        _LOGGER.debug("Getting available sections for service '%s'", service_name)
+        alarm = service_data["alarm"]
+        for section in alarm["sections"]:
+            # Get section details
+            section_name = section["name"]
+            section_id = section["cloud-component-id"]
+            partial_arm_enabled = section["partial-arm-enabled"]
+            requires_authorization = section["need-authorization"]
+            current_state = state_to_alarm_state(
+                next(
+                    filter(lambda state: state["cloud-component-id"] == section_id, alarm["states"]),
+                    None
                 )
+            )
 
-    async_add_entities(entities, True)
+            # Check whether section is controllable
+            if not section["can-control"]:
+                _LOGGER.debug("Section '%s' is not controllable, ignoring!", section_name)
+
+                continue
+
+            # Add controllable section entity
+            _LOGGER.debug("Adding controllable section '%s'", section_name)
+            entities.append(
+                JablotronAlarmControlPanel(
+                    coordinator,
+                    service_id,
+                    service_name,
+                    service_type,
+                    section_id,
+                    section_name,
+                    partial_arm_enabled,
+                    requires_authorization,
+                    current_state
+                )
+            )
+
+    async_add_entities(entities)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload config entry."""
+async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:
+    """Unload alarm panel entities."""
 
     return True
 
 
-class JablotronAlarmControlPanel(
-    CoordinatorEntity[JablotronDataCoordinator],
-    AlarmControlPanelEntity
-):
-    """Representation of Jablotron Cloud alarm panel."""
+# TODO: cleanup + what about coordinator??
+class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], AlarmControlPanelEntity):
+    """Representation of Jablotron Cloud alarm panel entity."""
 
     _attr_should_poll = False
     _attr_has_entity_name = True
@@ -98,24 +106,28 @@ class JablotronAlarmControlPanel(
     def __init__(
         self: JablotronAlarmControlPanel,
         coordinator: JablotronDataCoordinator,
-        friendly_name: str,
         service_id: int,
+        service_name: str,
+        service_type: str,
         section_id: str,
+        section_name: str,
         partial_arm_enabled: bool,
-        requires_authorization: bool
+        requires_authorization: bool,
+        current_state: AlarmControlPanelState
     ) -> None:
         """Initialize Jablotron alarm panel."""
 
         # Define panel attributes
-        self._attr_name = friendly_name
+        self._attr_name = section_name
         self._attr_unique_id = f"{service_id} {section_id}"
         self._coordinator = coordinator
         self._service_id = service_id
-        self._service_name: str = coordinator.data[service_id]["service"]["name"]
-        self._service_type: str = coordinator.data[service_id]["service"][SERVICE_TYPE]
+        self._service_name = service_name
+        self._service_type = service_type
         self._section_id = section_id
         self._supports_partial_arm = partial_arm_enabled
         self._authorization_required = requires_authorization
+        self._attr_alarm_state = current_state
 
         # Initialize alarm control panel
         super().__init__(coordinator)
@@ -227,12 +239,15 @@ class JablotronAlarmControlPanel(
     def _handle_coordinator_update(self) -> None:
         """Process data retrieved by coordinator."""
 
+        _LOGGER.warning("[%s]: UPDATE ALARM", self._attr_name)
+
         if not self._coordinator.data or self._service_id not in self._coordinator.data:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
 
             return
 
         # Get the section state from the coordinator data
+        # _LOGGER.warning("[%s]: GET STATE ALARM", self._attr_name)
         sections_data = self._coordinator.data[self._service_id].get("sections", {})
         states = sections_data.get("states", [])
         if not states:
@@ -243,16 +258,23 @@ class JablotronAlarmControlPanel(
             return
 
         # Update the state and schedule an update
+        # _LOGGER.warning("[%s]: UPDATE STATE ALARM", self._attr_name)
         _LOGGER.debug("Updating section state for service '%d'", self._service_id)
         state = next(filter(lambda data: data[COMP_ID] == self._section_id, states))
+        # _LOGGER.warning("[%s]: UPDATE STATE MATCH ALARM", self._attr_name)
         match state["state"]:
             case Actions.ARM:
+                # _LOGGER.warning("[%s]: ARM state", self._attr_name)
                 self._attr_alarm_state = AlarmControlPanelState.ARMED_AWAY
             case Actions.PARTIAL_ARM:
+                # _LOGGER.warning("[%s]: PARTIAL ARM state", self._attr_name)
                 self._attr_alarm_state = AlarmControlPanelState.ARMED_HOME
             case Actions.DISARM:
+                # _LOGGER.warning("[%s]: DISARM state", self._attr_name)
                 self._attr_alarm_state = AlarmControlPanelState.DISARMED
             case _:
+                _LOGGER.error("[%s]: Unknown state", self._attr_name)
                 self._attr_alarm_state = STATE_UNKNOWN
 
+        _LOGGER.warning("[%s]: DONE UPDATE ALARM", self._attr_name)
         self.async_write_ha_state()

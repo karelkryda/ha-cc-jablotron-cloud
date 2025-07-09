@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import JablotronDataCoordinator
+from . import JablotronConfigEntry,JablotronData, JablotronDataCoordinator
 from .const import COMP_ID, DOMAIN, SERVICE_TYPE
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,12 +18,13 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: JablotronConfigEntry,
     async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up programmable gate binary sensor for Jablotron Cloud from config entry."""
 
-    coordinator: JablotronDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    runtime_data: JablotronData = entry.runtime_data
+    coordinator = runtime_data.coordinator
     services: dict[int, dict] = coordinator.data
 
     if not services:
@@ -53,10 +53,10 @@ async def async_setup_entry(
                     )
                 )
 
-    async_add_entities(entities, True)
+    async_add_entities(entities)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:
     """Unload config entry."""
 
     return True
