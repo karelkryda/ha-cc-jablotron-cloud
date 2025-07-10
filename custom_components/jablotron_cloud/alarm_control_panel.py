@@ -27,7 +27,7 @@ def state_to_alarm_state(state: JablotronSectionsState | None) -> AlarmControlPa
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # noqa: F841
     entry: JablotronConfigEntry,
     async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -44,6 +44,7 @@ async def async_setup_entry(
         # Get service details
         service_name = service_data["name"]
         service_type = service_data["type"]
+        service_firmware = service_data["firmware"]
 
         # Add all controllable section entities
         _LOGGER.debug("Getting available sections for service '%s'", service_name)
@@ -76,6 +77,7 @@ async def async_setup_entry(
                     service_id,
                     service_name,
                     service_type,
+                    service_firmware,
                     section_id,
                     section_name,
                     partial_arm_enabled,
@@ -87,7 +89,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:  # noqa: F841
     """Unload alarm panel entities."""
 
     return True
@@ -106,6 +108,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         service_id: int,
         service_name: str,
         service_type: str,
+        service_firmware: str,
         section_id: str,
         section_name: str,
         partial_arm_enabled: bool,
@@ -119,6 +122,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         self._service_id = service_id
         self._service_name = service_name
         self._service_type = service_type
+        self._service_firmware = service_firmware
         self._section_id = section_id
         self._section_name = section_name
 
@@ -162,8 +166,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             identifiers={(DOMAIN, str(self._service_id))},
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type
-            # TODO: get fw version
+            model=self._service_type,
+            sw_version=self._service_firmware
         )
 
     def alarm_disarm(self, code: str | None = None) -> None:

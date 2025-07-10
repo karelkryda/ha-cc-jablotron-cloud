@@ -144,6 +144,13 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
             # Initialize service data
             self._client.services[service_id] = JablotronServiceData(name=service_name, type=service_type)  # noqa
 
+            # Get additional service data
+            _LOGGER.debug("Fetching additional data for service '%d'", service_id)
+            self._client.services[service_id]["firmware"] = (await self.hass.async_add_executor_job(
+                bridge.get_service_information,
+                service_id
+            )).get("device", {}).get("firmware", "N/A")
+
             # Get available sections from Jablotron Cloud
             _LOGGER.debug("Discovering available sections for service '%d'", service_id)
             self._client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(

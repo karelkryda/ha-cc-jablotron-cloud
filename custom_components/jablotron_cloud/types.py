@@ -7,6 +7,7 @@ JablotronServiceData = TypedDict(
     {
         "name": str,
         "type": str,
+        "firmware": str,
         "alarm": JablotronSections,
         "gates": JablotronProgrammableGates,
         "thermo": list[JablotronThermoDevice]
