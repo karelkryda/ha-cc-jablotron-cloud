@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.alarm_control_panel import (
-    AlarmControlPanelEntity,
-    AlarmControlPanelEntityFeature,
-    AlarmControlPanelState,
-    CodeFormat
-)
+from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity, AlarmControlPanelEntityFeature, \
+    AlarmControlPanelState, CodeFormat
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo

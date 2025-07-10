@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import JablotronConfigEntry,JablotronData, JablotronDataCoordinator
+from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator
 from .const import COMP_ID, DOMAIN, SERVICE_TYPE
 
 _LOGGER = logging.getLogger(__name__)
