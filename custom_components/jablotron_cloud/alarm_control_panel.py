@@ -120,6 +120,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         self._service_name = service_name
         self._service_type = service_type
         self._section_id = section_id
+        self._section_name = section_name
 
         # Define panel attributes
         self._attr_name = section_name
@@ -246,47 +247,32 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
                 translation_key="invalid_pin"
             )
 
-    # TODO: use runtime data instead :ú
     @callback
     def _handle_coordinator_update(self) -> None:
         """Process data retrieved by coordinator."""
 
-        _LOGGER.warning("[%s]: UPDATE ALARM", self._attr_name)
+        # Get corresponding service data
+        _LOGGER.debug("Updating alarm state for section '%s'", self._section_name)
+        service = self._client.services.get(self._service_id, None)
+        if not service:
+            _LOGGER.error("No data available for service '%d'!", self._service_id)
 
-        # if not self._coordinator.data or self._service_id not in self._coordinator.data:
-        #     _LOGGER.error("No data available for service '%d'!", self._service_id)
-        #
-        #     return
-        #
-        # # Get the section state from the coordinator data
-        # # _LOGGER.warning("[%s]: GET STATE ALARM", self._attr_name)
-        # sections_data = self._coordinator.data[self._service_id].get("sections", {})
-        # states = sections_data.get("states", [])
-        # if not states:
-        #     _LOGGER.warning(
-        #         "States data are not available for service '%d'!", self._service_id
-        #     )
-        #
-        #     return
-        #
-        # # Update the state and schedule an update
-        # # _LOGGER.warning("[%s]: UPDATE STATE ALARM", self._attr_name)
-        # _LOGGER.debug("Updating section state for service '%d'", self._service_id)
-        # state = next(filter(lambda data: data[COMP_ID] == self._section_id, states))
-        # # _LOGGER.warning("[%s]: UPDATE STATE MATCH ALARM", self._attr_name)
-        # match state["state"]:
-        #     case Actions.ARM:
-        #         # _LOGGER.warning("[%s]: ARM state", self._attr_name)
-        #         self._attr_alarm_state = AlarmControlPanelState.ARMED_AWAY
-        #     case Actions.PARTIAL_ARM:
-        #         # _LOGGER.warning("[%s]: PARTIAL ARM state", self._attr_name)
-        #         self._attr_alarm_state = AlarmControlPanelState.ARMED_HOME
-        #     case Actions.DISARM:
-        #         # _LOGGER.warning("[%s]: DISARM state", self._attr_name)
-        #         self._attr_alarm_state = AlarmControlPanelState.DISARMED
-        #     case _:
-        #         _LOGGER.error("[%s]: Unknown state", self._attr_name)
-        #         self._attr_alarm_state = STATE_UNKNOWN
-        #
-        # _LOGGER.warning("[%s]: DONE UPDATE ALARM", self._attr_name)
-        # self.async_write_ha_state()
+            return
+
+        # Get service states
+        states = service["alarm"].get("states", None)
+        if not states:
+            _LOGGER.warning("No states data available for service '%d'!", self._service_id)
+
+            return
+
+        # Set current section state
+        self._attr_alarm_state = state_to_alarm_state(
+            next(
+                filter(lambda state: state["cloud-component-id"] == self._section_id, states),
+                None
+            )
+        )
+        self.async_write_ha_state()
+
+        _LOGGER.debug("Successfully updated alarm state for section '%s'", self._section_name)
