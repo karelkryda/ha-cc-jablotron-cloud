@@ -4,9 +4,9 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL, CONF_TIMEOUT, \
-    CONF_FORCE_UPDATE
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_FORCE_UPDATE, CONF_SCAN_INTERVAL, \
+    CONF_TIMEOUT
 from jablotronpy import UnauthorizedException
 
 from .const import DOMAIN
@@ -51,12 +51,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 3
     MINOR_VERSION = 1
 
-    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
         """User flow to configure Jablotron Cloud integration."""
 
         # Open configuration dialog
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=get_schema())
+            return self.async_show_form(data_schema=get_schema())
 
         # Validate entered credentials and reopen dialog if they are not valid
         try:
@@ -64,7 +64,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(validate_credentials, user_input)
         except UnauthorizedException:
             return self.async_show_form(
-                step_id="user",
                 data_schema=get_schema(
                     user_input[CONF_USERNAME],
                     user_input[CONF_PIN],
@@ -78,7 +77,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.info("Jablotron Cloud integration successfully configured")
             return self.async_create_entry(title="Jablotron Cloud", data=user_input)
 
-    async def async_step_reconfigure(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_reconfigure(self, user_input: dict | None = None) -> ConfigFlowResult:
         """User flow to reconfigure Jablotron Cloud integration."""
 
         # Get existing configuration
@@ -89,7 +88,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Open reconfiguration dialog
         if user_input is None:
             return self.async_show_form(
-                step_id="reconfigure",
                 data_schema=get_schema(
                     config_entry.data[CONF_USERNAME],
                     config_entry.data[CONF_PIN],
@@ -105,7 +103,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(validate_credentials, user_input)
         except UnauthorizedException:
             return self.async_show_form(
-                step_id="reconfigure",
                 data_schema=get_schema(
                     user_input[CONF_USERNAME],
                     user_input[CONF_PIN],
