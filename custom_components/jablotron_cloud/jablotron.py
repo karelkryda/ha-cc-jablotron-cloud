@@ -16,13 +16,7 @@ class JablotronClient:
         self._username = username
         self._password = password
         self._default_pin = default_pin
-        self._force_arm = force_arm
-
-    @property
-    def force_arm(self):
-        """Return whether arm should be forced."""
-
-        return self._force_arm
+        self.force_arm = force_arm
 
     def get_bridge(self) -> Jablotron:
         """Return Jablotron bridge instance."""
