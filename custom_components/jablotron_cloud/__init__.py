@@ -1,4 +1,4 @@
-"""The Jablotron Cloud integration."""
+"""Jablotron Cloud integration."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_PIN, CONF_USERNAME, CONF_SCAN_INTERVAL, CONF_TIMEOUT, \
-    CONF_FORCE_UPDATE
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_FORCE_UPDATE, CONF_SCAN_INTERVAL, \
+    CONF_TIMEOUT
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from jablotronpy import Jablotron, JablotronService
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from jablotronpy import Jablotron
 
-from .const import PLATFORMS, SERVICE_TYPE, UNSUPPORTED_SERVICES
+from .const import PLATFORMS, UNSUPPORTED_SERVICES
 from .jablotron import JablotronClient
 from .types import JablotronServiceData
 
@@ -38,14 +38,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronConfigEntry) ->
     scan_timeout: int = entry.data[CONF_TIMEOUT]
     coordinator = JablotronDataCoordinator(hass, client, scan_interval, scan_timeout)
 
+    # Prepare runtime data
+    entry.runtime_data = JablotronData(client, coordinator)
+
     # Fetch initial data for platforms initialization
     await coordinator.async_config_entry_first_refresh()
 
     # Listen for configuration changes
     entry.async_on_unload(entry.add_update_listener(update_listener))
-
-    # Prepare runtime data
-    entry.runtime_data = JablotronData(client, coordinator)
 
     # Setup all supported platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -105,7 +105,7 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
         """Initialize Home Assistant data update coordinator."""
 
         # Define coordinator attributes
-        self.client = client
+        self._client = client
         self._scan_timeout = scan_timeout
 
         # Initialize data update coordinator
@@ -121,8 +121,8 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
 
         # Get available services from Jablotron Cloud
         _LOGGER.debug("Discovering available Jablotron services")
-        bridge: Jablotron = await self.hass.async_add_executor_job(self.client.get_bridge)
-        services: list[JablotronService] = await self.hass.async_add_executor_job(bridge.get_services)
+        bridge: Jablotron = await self.hass.async_add_executor_job(self._client.get_bridge)  # noqa
+        services = await self.hass.async_add_executor_job(bridge.get_services)  # noqa
 
         # Log that no services were discovered
         if not services:
@@ -142,105 +142,73 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                 continue
 
             # Initialize service data
-            self.client.services[service_id] = JablotronServiceData(name=service_name, type=service_type)
+            self._client.services[service_id] = JablotronServiceData(name=service_name, type=service_type)  # noqa
 
             # Get available sections from Jablotron Cloud
             _LOGGER.debug("Discovering available sections for service '%d'", service_id)
-            self.client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(
+            self._client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(
                 bridge.get_sections,
                 service_id,
                 service_type
             )
 
-    #         # Fetch gates for the service
-    #         _LOGGER.debug("Updating data for service '%d'", service_id)
-    #         _LOGGER.warning("GET GATES")
-    #         gates = await self.hass.async_add_executor_job(bridge.get_programmable_gates, service_id, service_type)
-    #
-    #         # Fetch thermo devices for the service
-    #         _LOGGER.warning("GET THERMO DEVICES")
-    #         thermo_devices = await self.hass.async_add_executor_job(
-    #             bridge.get_thermo_devices, service_id, service_type
-    #         )
-    #
-    #         # Save fetched service data
-    #         _LOGGER.warning("DONE")
-    #         _LOGGER.debug("Data for service '%d' successfully updated.", service_id)
-    #         data[service_id] = {
-    #             "service": service,
-    #             "gates": gates,
-    #             "sections": sections,
-    #             "thermo": thermo_devices,
-    #         }
+            # Get available gates from Jablotron Cloud
+            _LOGGER.debug("Discovering available gates for service '%d'", service_id)
+            self._client.services[service_id]["gates"] = await self.hass.async_add_executor_job(
+                bridge.get_programmable_gates,
+                service_id,
+                service_type
+            )
 
-    async def _async_update_data(self) -> dict:
-        """Fetch data from Jablotron Cloud API."""
+            # Get available thermo devices from Jablotron Cloud
+            _LOGGER.debug("Discovering available thermo devices for service '%d'", service_id)
+            self._client.services[service_id]["thermo"] = await self.hass.async_add_executor_job(
+                bridge.get_thermo_devices,
+                service_id,
+                service_type
+            )
 
-        _LOGGER.debug("Fetching data")
-        return {}
+            _LOGGER.debug("Successfully discovered available platforms for service '%d'", service_id)
+
+    async def _async_update_data(self) -> None:
+        """Update data for all platforms."""
 
         try:
-            # async with timeout(1 if random.choice(range(3)) == 2 else self._scan_timeout):
             async with timeout(self._scan_timeout):
-                # _LOGGER.warning("GET BRIDGE")
-                bridge = await self.hass.async_add_executor_job(self.client.get_bridge)
+                # Get fresh Jablotron Cloud session
+                _LOGGER.debug("Updating data for available Jablotron services")
+                bridge: Jablotron = await self.hass.async_add_executor_job(self._client.get_bridge)  # noqa
 
-                # Get services from Jablotron Cloud
-                # _LOGGER.warning("GET SERVICES")
-                services = await self.hass.async_add_executor_job(bridge.get_services)
+                # Update data for all available services
+                for service_id in self._client.services:
+                    # Get service details
+                    service_type = self._client.services[service_id]["type"]
 
-                # Log that no services were discovered
-                if not services:
-                    _LOGGER.warning(
-                        "No services were discovered and therefore no entities will be generated!"
+                    # Update sections data from Jablotron Cloud
+                    _LOGGER.debug("Updating sections data for service '%d'", service_id)
+                    self._client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(
+                        bridge.get_sections,
+                        service_id,
+                        service_type
                     )
 
-                # Fetch data for each service
-                data = {}
-                for service in services:
-                    service_id: int = service["service-id"]
-                    service_type: str = service[SERVICE_TYPE]
-
-                    # Check whether service type is supported
-                    if service_type in SERVICES_WITHOUT_PG:
-                        _LOGGER.debug(
-                            "Service type '%s' is not supported, skipping update for service '%d'!",
-                            service_type,
-                            service_id
-                        )
-
-                        continue
-
-                    # Fetch gates for the service
-                    _LOGGER.debug("Updating data for service '%d'", service_id)
-                    # _LOGGER.warning("GET GATES")
-                    gates = await self.hass.async_add_executor_job(bridge.get_programmable_gates, service_id,
-                                                                   service_type)
-
-                    # Fetch sections for the service
-                    # _LOGGER.warning("GET SECTIONS")
-                    # sections = await self.hass.async_add_executor_job(bridge.get_sections, service_id, service_type)
-                    sections = self.two if self.run < 5 else self.three
-                    _LOGGER.warning(sections)
-
-                    # Fetch thermo devices for the service
-                    # _LOGGER.warning("GET THERMO DEVICES")
-                    thermo_devices = await self.hass.async_add_executor_job(
-                        bridge.get_thermo_devices, service_id, service_type
+                    # Update gates data from Jablotron Cloud
+                    _LOGGER.debug("Updating gates data for service '%d'", service_id)
+                    self._client.services[service_id]["gates"] = await self.hass.async_add_executor_job(
+                        bridge.get_programmable_gates,
+                        service_id,
+                        service_type
                     )
 
-                    # Save fetched service data
-                    # _LOGGER.warning("DONE")
-                    _LOGGER.debug("Data for service '%d' successfully updated.", service_id)
-                    data[service_id] = {
-                        "service": service,
-                        "gates": gates,
-                        "sections": sections,
-                        "thermo": thermo_devices,
-                    }
+                    # Update thermo devices data from Jablotron Cloud
+                    _LOGGER.debug("Updating thermo devices data for service '%d'", service_id)
+                    self._client.services[service_id]["thermo"] = await self.hass.async_add_executor_job(
+                        bridge.get_thermo_devices,
+                        service_id,
+                        service_type
+                    )
 
-                self.run = self.run + 1
-                return data
-        except Exception as err:
-            _LOGGER.error("UPDATE ERROR: %s", err)
-            raise UpdateFailed(err)
+                    _LOGGER.debug("Successfully updated platforms data for service '%d'", service_id)
+        except TimeoutError:
+            # Warn that timeout occurred that will cause data to not be up-to-date
+            _LOGGER.warning("Timeout while updating data for available services, data may be out of date!")
