@@ -29,5 +29,10 @@
             "already_configured": "Device is already configured",
             "reconfigure_successful": "Device has been successfully reconfigure"
         }
+    },
+    "exceptions": {
+        "invalid_pin": {
+            "message": "Provided pin code is not valid!"
+        }
     }
 }

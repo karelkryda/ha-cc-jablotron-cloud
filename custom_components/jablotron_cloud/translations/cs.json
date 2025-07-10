@@ -29,5 +29,10 @@
             "already_configured": "Zařízení již bylo nakonfigurováno",
             "reconfigure_successful": "Zařízení bylo úspěšně rekonfigurováno"
         }
+    },
+    "exceptions": {
+        "invalid_pin": {
+            "message": "Zadaný pin kód není platný!"
+        }
     }
 }
