@@ -264,7 +264,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             return
 
         # Get service states
-        states = service["alarm"].get("states", None)
+        states = service["alarm"]["states"]
         if not states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
 

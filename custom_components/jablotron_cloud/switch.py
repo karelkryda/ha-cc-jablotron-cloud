@@ -200,7 +200,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             return
 
         # Get service states
-        states = service["gates"].get("states", None)
+        states = service["gates"]["states"]
         if not states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
 
