@@ -1,4 +1,4 @@
-"""Support for Jablotron PG sensors."""
+"""Support for Jablotron PG binary sensors."""
 
 from __future__ import annotations
 
@@ -9,84 +9,118 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from jablotronpy import JablotronProgrammableGatesState
 
-from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator
-from .const import COMP_ID, DOMAIN, SERVICE_TYPE
+from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
+from .const import DOMAIN, STATE_AS_BINARY_STATE
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def state_to_binary_state(state: JablotronProgrammableGatesState | None) -> bool:
+    """Convert state to boolean value."""
+
+    return STATE_AS_BINARY_STATE.get(state["state"], False)
+
+
 async def async_setup_entry(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # noqa: F841
     entry: JablotronConfigEntry,
     async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up programmable gate binary sensor for Jablotron Cloud from config entry."""
+    """Register binary sensor entity for each Jablotron service uncontrollable programmable gate."""
 
+    _LOGGER.debug("Adding Jablotron binary sensor entities")
     runtime_data: JablotronData = entry.runtime_data
     coordinator = runtime_data.coordinator
-    services: dict[int, dict] = coordinator.data
+    client = runtime_data.client
 
-    if not services:
-        return
-
-    # Prepare entities to be created
+    # Get programmable gates for each service
     entities: list[JablotronProgrammableGate] = []
-    for service_id, service_data in services.items():
-        gates_data: dict = service_data["gates"]
-        if not gates_data:
-            continue
+    for service_id, service_data in client.services.items():
+        # Get service details
+        service_name = service_data["name"]
+        service_type = service_data["type"]
+        service_firmware = service_data["firmware"]
 
-        gates = gates_data.get("programmableGates", [])
-        for gate in gates:
-            gate_controllable: bool = gate["can-control"]
-
-            if not gate_controllable:
-                friendly_name: str = gate["name"]
-                gate_id: str = gate[COMP_ID]
-
-                # Add uncontrollable gate entity
-                _LOGGER.debug("Adding uncontrollable gate '%s'", friendly_name)
-                entities.append(
-                    JablotronProgrammableGate(
-                        coordinator, friendly_name, service_id, gate_id
-                    )
+        # Add all uncontrollable programmable gate entities
+        _LOGGER.debug("Getting available programmable gates for service '%s'", service_name)
+        gates = service_data["gates"]
+        for gate in gates.get("programmableGates", []):
+            # Get gate details
+            gate_name = gate["name"]
+            gate_id = gate["cloud-component-id"]
+            is_on = state_to_binary_state(
+                next(
+                    filter(lambda state: state["cloud-component-id"] == gate_id, gates["states"]),
+                    None
                 )
+            )
+
+            # Check whether programmable gate is NOT controllable
+            if gate["can-control"]:
+                _LOGGER.debug("Programmable gate '%s' is controllable, ignoring!", gate_name)
+
+                continue
+
+            # Add uncontrollable programmable gate entity
+            _LOGGER.debug("Adding uncontrollable programmable gate '%s'", gate_name)
+            entities.append(
+                JablotronProgrammableGate(
+                    coordinator,
+                    client,
+                    service_id,
+                    service_name,
+                    service_type,
+                    service_firmware,
+                    gate_id,
+                    gate_name,
+                    is_on
+                )
+            )
 
     async_add_entities(entities)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:
-    """Unload config entry."""
+async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:  # noqa: F841
+    """Unload binary sensor entities."""
 
     return True
 
 
-class JablotronProgrammableGate(
-    CoordinatorEntity[JablotronDataCoordinator], BinarySensorEntity
-):
-    """Representation of Jablotron programmable gate."""
+class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], BinarySensorEntity):
+    """Representation of Jablotron Cloud binary sensor entity."""
 
-    _attr_should_poll = False
+    # Allow custom entity names
     _attr_has_entity_name = True
 
     def __init__(
         self: JablotronProgrammableGate,
         coordinator: JablotronDataCoordinator,
-        friendly_name: str,
+        client: JablotronClient,
         service_id: int,
-        gate_id: str
+        service_name: str,
+        service_type: str,
+        service_firmware: str,
+        gate_id: str,
+        gate_name: str,
+        is_on: bool
     ) -> None:
-        """Initialize Jablotron programmable gate binary sensor."""
+        """Initialize Jablotron binary sensor."""
+
+        # Define entity attributes
+        self._client = client
+        self._service_id = service_id
+        self._service_name = service_name
+        self._service_type = service_type
+        self._service_firmware = service_firmware
+        self._gate_id = gate_id
+        self._gate_name = gate_name
 
         # Define sensor attributes
-        self._attr_name = friendly_name
-        self._attr_unique_id = f"{service_id} {gate_id}"
-        self._coordinator = coordinator
-        self._service_id = service_id
-        self._service_name: str = coordinator.data[service_id]["service"]["name"]
-        self._service_type: str = coordinator.data[service_id]["service"][SERVICE_TYPE]
-        self._gate_id = gate_id
+        self._attr_name = gate_name
+        self._attr_unique_id = f"{service_id}_{gate_id}"
+        self._attr_is_on = is_on
 
         # Initialize binary sensor
         super().__init__(coordinator)
@@ -96,30 +130,39 @@ class JablotronProgrammableGate(
         """Return information about device."""
 
         return DeviceInfo(
-            identifiers={
-                # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, str(self._service_id))
-            },
+            identifiers={(DOMAIN, str(self._service_id))},
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type
+            model=self._service_type,
+            sw_version=self._service_firmware
         )
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Process data retrieved by coordinator."""
 
-        if not self._coordinator.data or self._service_id not in self._coordinator.data:
+        # Get corresponding service data
+        _LOGGER.debug("Updating gate state for gate '%s'", self._gate_name)
+        service = self._client.services.get(self._service_id, None)
+        if not service:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
 
             return
 
-        # Get gates from the coordinator data
-        _LOGGER.debug("Updating gate state for service '%d'", self._service_id)
-        gates_data = self._coordinator.data[self._service_id].get("gates", {})
-        states = gates_data.get("states", [])
-        state = next(filter(lambda data: data[COMP_ID] == self._gate_id, states))
+        # Get service states
+        states = service["gates"].get("states", None)
+        if not states:
+            _LOGGER.warning("No states data available for service '%d'!", self._service_id)
 
-        # Update the state and schedule an update
-        self._attr_is_on = not state["state"] == "OFF"
+            return
+
+        # Set current programmable gate state
+        self._attr_is_on = state_to_binary_state(
+            next(
+                filter(lambda state: state["cloud-component-id"] == self._gate_id, states),
+                None
+            )
+        )
         self.async_write_ha_state()
+
+        _LOGGER.debug("Successfully updated gate state for gate '%s'", self._gate_name)

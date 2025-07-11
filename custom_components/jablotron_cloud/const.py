@@ -24,3 +24,8 @@ STATE_AS_ALARM_STATE = {
     "PARTIAL_ARM": AlarmControlPanelState.ARMED_HOME,
     "DISARM": AlarmControlPanelState.DISARMED,
 }
+
+STATE_AS_BINARY_STATE = {
+    "ON": True,
+    "OFF": False
+}
