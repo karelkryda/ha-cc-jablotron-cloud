@@ -188,7 +188,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             # Set state to disarming if disarm action was successful
             if disarm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.DISARMING
-                self.async_write_ha_state()
+                self.schedule_update_ha_state()
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -214,7 +214,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             # Set state to arming if arm action was successful
             if arm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.ARMING
-                self.async_write_ha_state()
+                self.schedule_update_ha_state()
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -244,7 +244,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             # Set state to arming if partial arm action was successful
             if arm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.ARMING
-                self.async_write_ha_state()
+                self.schedule_update_ha_state()
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,

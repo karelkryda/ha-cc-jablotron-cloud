@@ -156,7 +156,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             # Set state to on if turn on action was successful
             if turn_on_successful:
                 self._attr_is_on = True
-                self.async_write_ha_state()
+                self.schedule_update_ha_state()
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -179,7 +179,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             # Set state to off if turn off action was successful
             if turn_off_successful:
                 self._attr_is_on = False
-                self.async_write_ha_state()
+                self.schedule_update_ha_state()
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
