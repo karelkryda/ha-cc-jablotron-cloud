@@ -13,12 +13,7 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
 
-# API constants
-# TODO: try to remove
-SERVICE_TYPE = "service-type"
-COMP_ID = "cloud-component-id"
-DEVICE_ID = "object-device-id"
-
+# Jablotron states as Home Assistant states
 STATE_AS_ALARM_STATE = {
     "ARM": AlarmControlPanelState.ARMED_AWAY,
     "PARTIAL_ARM": AlarmControlPanelState.ARMED_HOME,

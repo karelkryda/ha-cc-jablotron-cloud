@@ -10,7 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from jablotronpy import JablotronProgrammableGatesState, IncorrectPinCodeException
+from jablotronpy import JablotronProgrammableGatesGate, JablotronProgrammableGatesState, IncorrectPinCodeException
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
 from .const import DOMAIN, STATE_AS_BINARY_STATE
@@ -49,6 +49,7 @@ async def async_setup_entry(
         gates = service_data["gates"]
         for gate in gates.get("programmableGates", []):
             # Get gate details
+            gate: JablotronProgrammableGatesGate
             gate_name = gate["name"]
             gate_id = gate["cloud-component-id"]
             is_on = state_to_binary_state(
