@@ -1,4 +1,4 @@
-"""Support for Jablotron temperature sensors."""
+"""Support for Jablotron thermo device sensors."""
 
 from __future__ import annotations
 
@@ -10,59 +10,71 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from jablotronpy import JablotronThermoDevice
 
-from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator
-from .const import DEVICE_ID, DOMAIN, SERVICE_TYPE
+from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # noqa: F841
     entry: JablotronConfigEntry,
     async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up temperature sensor for Jablotron Cloud from config entry."""
+    """Register sensor entity for each Jablotron service thermo device."""
 
+    _LOGGER.debug("Adding Jablotron sensor entities")
     runtime_data: JablotronData = entry.runtime_data
     coordinator = runtime_data.coordinator
-    services: dict[int, dict] = coordinator.data
+    client = runtime_data.client
 
-    if not services:
-        return
-
-    # Prepare entities to be created
+    # Get thermo devices for each service
     entities: list[JablotronSensor] = []
-    for service_id, service_data in services.items():
-        thermo_data: dict = service_data["thermo"]
-        if not thermo_data:
-            continue
+    for service_id, service_data in client.services.items():
+        # Get service details
+        service_name = service_data["name"]
+        service_type = service_data["type"]
+        service_firmware = service_data["firmware"]
 
-        for thermo_device in thermo_data:
-            device_id: str = thermo_device[DEVICE_ID]
+        # Add all thermo device entities
+        _LOGGER.debug("Getting available thermo devices for service '%s'", service_name)
+        thermo_devices = service_data["thermo"]
+        for thermo_device in thermo_devices:
+            # Get thermo device details
+            thermo_device_id = thermo_device["object-device-id"]
+            current_temperature = thermo_device["temperature"]
 
-            _LOGGER.debug("Adding thermo device '%s'", device_id)
+            # Add thermo device entity
+            _LOGGER.debug("Adding thermo device '%s'", thermo_device_id)
             entities.append(
                 JablotronSensor(
                     coordinator,
+                    client,
                     service_id,
-                    device_id
+                    service_name,
+                    service_type,
+                    service_firmware,
+                    thermo_device_id,
+                    current_temperature
                 )
             )
 
     async_add_entities(entities)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:
-    """Unload config entry."""
+async def async_unload_entry(hass: HomeAssistant, entry: JablotronConfigEntry) -> bool:  # noqa: F841
+    """Unload sensor entities."""
 
     return True
 
 
 class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity):
-    """Representation of Jablotron temperature sensor."""
+    """Representation of Jablotron Cloud sensor entity."""
 
-    _attr_should_poll = False
+    # Allow custom entity names
+    _attr_has_entity_name = True
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -70,19 +82,28 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
     def __init__(
         self: JablotronSensor,
         coordinator: JablotronDataCoordinator,
+        client: JablotronClient,
         service_id: int,
-        device_id: str
+        service_name: str,
+        service_type: str,
+        service_firmware: str,
+        thermo_device_id: str,
+        current_temperature: float
     ) -> None:
-        """Initialize Jablotron temperature sensor."""
+        """Initialize Jablotron sensor."""
+
+        # Define entity attributes
+        self._client = client
+        self._service_id = service_id
+        self._service_name = service_name
+        self._service_type = service_type
+        self._service_firmware = service_firmware
+        self._thermo_device_id = thermo_device_id
 
         # Define sensor attributes
-        self._attr_name = device_id
-        self._attr_unique_id = f"{service_id} {device_id}"
-        self._coordinator = coordinator
-        self._service_id = service_id
-        self._service_name: str = coordinator.data[service_id]["service"]["name"]
-        self._service_type: str = coordinator.data[service_id]["service"][SERVICE_TYPE]
-        self._device_id = device_id
+        self._attr_name = f"{thermo_device_id}_temperature"
+        self._attr_unique_id = f"{service_id}_{thermo_device_id}"
+        self._attr_native_value = current_temperature
 
         # Initialize sensor
         super().__init__(coordinator)
@@ -92,32 +113,44 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
         """Return information about device."""
 
         return DeviceInfo(
-            identifiers={
-                # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, str(self._service_id))
-            },
+            identifiers={(DOMAIN, str(self._service_id))},
             name=self._service_name,
             manufacturer="Jablotron",
-            model=self._service_type
+            model=self._service_type,
+            sw_version=self._service_firmware
         )
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Process data retrieved by coordinator."""
 
-        if not self._coordinator.data or self._service_id not in self._coordinator.data:
+        # Get corresponding service data
+        _LOGGER.debug("Updating thermo device state for device '%s'", self._thermo_device_id)
+        service = self._client.services.get(self._service_id, None)
+        if not service:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
 
             return
 
-        # Get thermo device from the coordinator data
-        _LOGGER.debug("Updating thermo data for service '%d'", self._service_id)
-        thermo_data = self._coordinator.data[self._service_id].get("thermo", {})
-        device = next(
-            filter(lambda data: data[DEVICE_ID] == self._device_id, thermo_data)
-        )
+        # Get service devices
+        thermo_devices = service["thermo"]
+        if not thermo_devices:
+            _LOGGER.warning("No thermo devices available for service '%d'!", self._service_id)
 
-        # Update the state and schedule an update
-        temperature = float(device["temperature"])
-        self._attr_native_value = temperature
+            return
+
+        # Get device
+        thermo_device: JablotronThermoDevice | None = next(
+            filter(lambda device: device["object-device-id"] == self._thermo_device_id, thermo_devices),
+            None
+        )
+        if not thermo_device:
+            _LOGGER.warning("No thermo device found with id '%s'!", self._thermo_device_id)
+
+            return
+
+        # Set current thermo device state
+        self._attr_native_value = thermo_device["temperature"]
         self.async_write_ha_state()
+
+        _LOGGER.debug("Successfully updated thermo device state for device '%s'", self._thermo_device_id)
