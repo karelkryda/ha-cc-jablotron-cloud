@@ -5,34 +5,45 @@
                 "data": {
                     "username": "Uživatelské jméno",
                     "password": "Heslo",
-                    "pin": "PIN",
-                    "force_update": "Vynutit zabezpečení",
-                    "scan_interval": "Interval aktualizací (sekund)",
-                    "timeout": "Časový limit aktualizace (sekund)"
+                    "pin": "PIN (pro PGs)",
+                    "force_update": "Bypassovat chyby sekcí",
+                    "scan_interval": "Interval aktualizací (v sekundách)",
+                    "timeout": "Časový limit aktualizace (v sekundách)"
                 }
             },
             "reconfigure": {
                 "data": {
                     "username": "Uživatelské jméno",
                     "password": "Heslo",
-                    "pin": "PIN",
-                    "force_update": "Vynutit zabezpečení",
-                    "scan_interval": "Interval aktualizací (sekund)",
-                    "timeout": "Časový limit aktualizace (sekund)"
+                    "pin": "PIN (pro PGs)",
+                    "force_update": "Bypassovat chyby sekcí",
+                    "scan_interval": "Interval aktualizací (v sekundách)",
+                    "timeout": "Časový limit aktualizace (v sekundách)"
+                }
+            },
+            "reauth_confirm": {
+                "data": {
+                    "username": "Uživatelské jméno",
+                    "password": "Heslo",
+                    "pin": "PIN (pro PGs)",
+                    "force_update": "Bypassovat chyby sekcí",
+                    "scan_interval": "Interval aktualizací (v sekundách)",
+                    "timeout": "Časový limit aktualizace (v sekundách)"
                 }
             }
         },
         "error": {
-            "invalid_auth": "Chybné přihlašovací údaje k Jablotron Cloudu"
+            "invalid_auth": "Nesprávné přihlašovací údaje pro Jablotron Cloud!"
         },
         "abort": {
-            "already_configured": "Zařízení již bylo nakonfigurováno",
-            "reconfigure_successful": "Zařízení bylo úspěšně rekonfigurováno"
+            "already_configured": "Zařízení již bylo nakonfigurováno!",
+            "reconfigure_successful": "Zařízení bylo úspěšně překonfigurováno.",
+            "reauth_successful": "Přihlášení do služby Jablotron Cloud bylo úspěšně obnoveno."
         }
     },
     "exceptions": {
         "invalid_pin": {
-            "message": "Zadaný pin kód není platný!"
+            "message": "Zadaný PIN kód není platný!"
         }
     }
 }

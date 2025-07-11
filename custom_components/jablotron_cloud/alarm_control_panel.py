@@ -8,11 +8,11 @@ from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
     AlarmControlPanelState, CodeFormat
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from jablotronpy import JablotronSectionsState, IncorrectPinCodeException
+from jablotronpy import JablotronSectionsState, UnauthorizedException, IncorrectPinCodeException
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
 from .const import DOMAIN, STATE_AS_ALARM_STATE
@@ -173,8 +173,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
     def alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm request."""
 
-        # Send disarm request to section
         try:
+            # Send disarm request to section
             code = self.code_or_default_code(code)
             bridge = self._client.get_bridge()
             disarm_successful = bridge.control_section(
@@ -189,6 +189,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             if disarm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.DISARMING
                 self.schedule_update_ha_state()
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -198,8 +200,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
     def alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm request."""
 
-        # Send arm request to section
         try:
+            # Send arm request to section
             code = self.code_or_default_code(code)
             bridge = self._client.get_bridge()
             arm_successful = bridge.control_section(
@@ -215,6 +217,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             if arm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.ARMING
                 self.schedule_update_ha_state()
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -228,8 +232,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         if not self._supports_partial_arm:
             return
 
-        # Send partial arm request to section
         try:
+            # Send partial arm request to section
             code = self.code_or_default_code(code)
             bridge = self._client.get_bridge()
             arm_successful = bridge.control_section(
@@ -245,6 +249,8 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             if arm_successful:
                 self._attr_alarm_state = AlarmControlPanelState.ARMING
                 self.schedule_update_ha_state()
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,

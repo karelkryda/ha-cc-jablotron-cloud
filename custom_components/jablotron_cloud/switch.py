@@ -6,11 +6,12 @@ import logging
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from jablotronpy import JablotronProgrammableGatesGate, JablotronProgrammableGatesState, IncorrectPinCodeException
+from jablotronpy import JablotronProgrammableGatesGate, JablotronProgrammableGatesState, UnauthorizedException, \
+    IncorrectPinCodeException
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
 from .const import DOMAIN, STATE_AS_BINARY_STATE
@@ -143,8 +144,8 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
     def turn_on(self, **kwargs) -> None:
         """Send turn on request."""
 
-        # Send turn on request to gate
         try:
+            # Send turn on request to gate
             bridge = self._client.get_bridge()
             turn_on_successful = bridge.control_programmable_gate(
                 service_id=self._service_id,
@@ -157,6 +158,8 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             if turn_on_successful:
                 self._attr_is_on = True
                 self.schedule_update_ha_state()
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -166,8 +169,8 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
     def turn_off(self, **kwargs) -> None:
         """Send turn off request."""
 
-        # Send turn off request to gate
         try:
+            # Send turn off request to gate
             bridge = self._client.get_bridge()
             turn_off_successful = bridge.control_programmable_gate(
                 service_id=self._service_id,
@@ -180,6 +183,8 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             if turn_off_successful:
                 self._attr_is_on = False
                 self.schedule_update_ha_state()
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except IncorrectPinCodeException:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,

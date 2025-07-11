@@ -11,8 +11,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_FORCE_UPDATE, CONF_SCAN_INTERVAL, \
     CONF_TIMEOUT
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from jablotronpy import Jablotron
+from jablotronpy import Jablotron, UnauthorizedException
 
 from .const import PLATFORMS, UNSUPPORTED_SERVICES
 from .jablotron import JablotronClient
@@ -121,68 +122,72 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
     async def _async_setup(self) -> None:
         """Fetch initial data for all platforms."""
 
-        # Get available services from Jablotron Cloud
-        _LOGGER.debug("Discovering available Jablotron services")
-        bridge: Jablotron = await self.hass.async_add_executor_job(self._client.get_bridge)  # noqa
-        services = await self.hass.async_add_executor_job(bridge.get_services)  # noqa
+        try:
+            # Get available services from Jablotron Cloud
+            _LOGGER.debug("Discovering available Jablotron services")
+            bridge: Jablotron = await self.hass.async_add_executor_job(self._client.get_bridge)  # noqa
+            services = await self.hass.async_add_executor_job(bridge.get_services)  # noqa
 
-        # Log that no services were discovered
-        if not services:
-            _LOGGER.warning("No services were discovered and therefore no entities will be generated!")
+            # Log that no services were discovered
+            if not services:
+                _LOGGER.warning("No services were discovered and therefore no entities will be generated!")
 
-        # Get all available platforms and their states for each service
-        for service in services:
-            # Get service details
-            service_name = service["name"]
-            service_id = service["service-id"]
-            service_type = service["service-type"]
+            # Get all available platforms and their states for each service
+            for service in services:
+                # Get service details
+                service_name = service["name"]
+                service_id = service["service-id"]
+                service_type = service["service-type"]
 
-            # Check whether service type is supported
-            if service_type in UNSUPPORTED_SERVICES:
-                _LOGGER.debug("Service '%s' is not supported, ignoring!", service_type)
+                # Check whether service type is supported
+                if service_type in UNSUPPORTED_SERVICES:
+                    _LOGGER.debug("Service '%s' is not supported, ignoring!", service_type)
 
-                continue
+                    continue
 
-            # Initialize service data
-            self._client.services[service_id] = JablotronServiceData(name=service_name, type=service_type)  # noqa
+                # Initialize service data
+                self._client.services[service_id] = JablotronServiceData(name=service_name, type=service_type)  # noqa
 
-            # Get additional service data
-            _LOGGER.debug("Fetching additional data for service '%d'", service_id)
-            self._client.services[service_id]["firmware"] = (await self.hass.async_add_executor_job(
-                bridge.get_service_information,
-                service_id
-            )).get("device", {}).get("firmware", "N/A")
+                # Get additional service data
+                _LOGGER.debug("Fetching additional data for service '%d'", service_id)
+                self._client.services[service_id]["firmware"] = (await self.hass.async_add_executor_job(
+                    bridge.get_service_information,
+                    service_id
+                )).get("device", {}).get("firmware", "N/A")
 
-            # Get available sections from Jablotron Cloud
-            _LOGGER.debug("Discovering available sections for service '%d'", service_id)
-            self._client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(
-                bridge.get_sections,
-                service_id,
-                service_type
-            )
+                # Get available sections from Jablotron Cloud
+                _LOGGER.debug("Discovering available sections for service '%d'", service_id)
+                self._client.services[service_id]["alarm"] = await self.hass.async_add_executor_job(
+                    bridge.get_sections,
+                    service_id,
+                    service_type
+                )
 
-            # Get available gates from Jablotron Cloud
-            _LOGGER.debug("Discovering available gates for service '%d'", service_id)
-            self._client.services[service_id]["gates"] = await self.hass.async_add_executor_job(
-                bridge.get_programmable_gates,
-                service_id,
-                service_type
-            )
+                # Get available gates from Jablotron Cloud
+                _LOGGER.debug("Discovering available gates for service '%d'", service_id)
+                self._client.services[service_id]["gates"] = await self.hass.async_add_executor_job(
+                    bridge.get_programmable_gates,
+                    service_id,
+                    service_type
+                )
 
-            # Get available thermo devices from Jablotron Cloud
-            _LOGGER.debug("Discovering available thermo devices for service '%d'", service_id)
-            self._client.services[service_id]["thermo"] = await self.hass.async_add_executor_job(
-                bridge.get_thermo_devices,
-                service_id,
-                service_type
-            )
+                # Get available thermo devices from Jablotron Cloud
+                _LOGGER.debug("Discovering available thermo devices for service '%d'", service_id)
+                self._client.services[service_id]["thermo"] = await self.hass.async_add_executor_job(
+                    bridge.get_thermo_devices,
+                    service_id,
+                    service_type
+                )
 
-            _LOGGER.debug("Successfully discovered available platforms for service '%d'", service_id)
+                _LOGGER.debug("Successfully discovered available platforms for service '%d'", service_id)
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
 
     async def _async_update_data(self) -> None:
         """Update data for all platforms."""
 
         try:
+            # Update data within a certain time limit
             async with timeout(self._scan_timeout):
                 # Get fresh Jablotron Cloud session
                 _LOGGER.debug("Updating data for available Jablotron services")
@@ -218,6 +223,8 @@ class JablotronDataCoordinator(DataUpdateCoordinator):
                     )
 
                     _LOGGER.debug("Successfully updated platforms data for service '%d'", service_id)
+        except UnauthorizedException as ex:
+            raise ConfigEntryAuthFailed(ex) from ex
         except TimeoutError:
             # Warn that timeout occurred that will cause data to not be up-to-date
             _LOGGER.warning("Timeout while updating data for available services, data may be out of date!")

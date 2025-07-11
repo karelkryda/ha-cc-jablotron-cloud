@@ -5,8 +5,8 @@
                 "data": {
                     "username": "Username",
                     "password": "Password",
-                    "pin": "PIN",
-                    "force_update": "Force arm",
+                    "pin": "PIN (for PGs)",
+                    "force_update": "Bypass section errors",
                     "scan_interval": "Update interval (seconds)",
                     "timeout": "Update timeout (seconds)"
                 }
@@ -15,24 +15,35 @@
                 "data": {
                     "username": "Username",
                     "password": "Password",
-                    "pin": "PIN",
-                    "force_update": "Force arm",
+                    "pin": "PIN (for PGs)",
+                    "force_update": "Bypass section errors",
+                    "scan_interval": "Update interval (seconds)",
+                    "timeout": "Update timeout (seconds)"
+                }
+            },
+            "reauth_confirm": {
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "pin": "PIN (for PGs)",
+                    "force_update": "Bypass section errors",
                     "scan_interval": "Update interval (seconds)",
                     "timeout": "Update timeout (seconds)"
                 }
             }
         },
         "error": {
-            "invalid_auth": "Incorrect Jablotron Cloud credentials"
+            "invalid_auth": "Incorrect login details for Jablotron Cloud!"
         },
         "abort": {
-            "already_configured": "Device is already configured",
-            "reconfigure_successful": "Device has been successfully reconfigure"
+            "already_configured": "The device has already been configured!",
+            "reconfigure_successful": "The device has been successfully reconfigured.",
+            "reauth_successful": "Login to Jablotron Cloud has been successfully restored."
         }
     },
     "exceptions": {
         "invalid_pin": {
-            "message": "Provided pin code is not valid!"
+            "message": "The entered pin code is not valid!"
         }
     }
 }
