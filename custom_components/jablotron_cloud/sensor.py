@@ -129,6 +129,7 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
         service = self._client.services.get(self._service_id, None)
         if not service:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
+            self._attr_available = False
 
             return
 
@@ -136,6 +137,7 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
         thermo_devices = service["thermo"]
         if not thermo_devices:
             _LOGGER.warning("No thermo devices available for service '%d'!", self._service_id)
+            self._attr_available = False
 
             return
 
@@ -146,10 +148,12 @@ class JablotronSensor(CoordinatorEntity[JablotronDataCoordinator], SensorEntity)
         )
         if not thermo_device:
             _LOGGER.warning("No thermo device found with id '%s'!", self._thermo_device_id)
+            self._attr_available = False
 
             return
 
         # Set current thermo device state
+        self._attr_available = True
         self._attr_native_value = thermo_device["temperature"]
         self.async_write_ha_state()
 
