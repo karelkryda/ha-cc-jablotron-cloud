@@ -139,7 +139,6 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
         service = self._client.services.get(self._service_id, None)
         if not service:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
-            self._attr_available = False
 
             return
 
@@ -147,7 +146,6 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
         service_states = service["gates"]["states"]
         if not service_states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
-            self._attr_available = False
 
             return
 
@@ -155,12 +153,10 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
         gate_state = get_pg_state(self._gate_id, service_states)
         if not gate_state:
             _LOGGER.warning("No state available for gate '%s'!", self._gate_name)
-            self._attr_available = False
 
             return
 
         # Set current programmable gate state
-        self._attr_available = True
         self._attr_is_on = pg_state_to_binary_state(gate_state)
         self.async_write_ha_state()
 

@@ -256,7 +256,6 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         service = self._client.services.get(self._service_id, None)
         if not service:
             _LOGGER.error("No data available for service '%d'!", self._service_id)
-            self._attr_available = False
 
             return
 
@@ -264,7 +263,6 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         service_states = service["alarm"]["states"]
         if not service_states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
-            self._attr_available = False
 
             return
 
@@ -272,12 +270,10 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
         section_state = get_section_state(self._section_id, service_states)
         if not section_state:
             _LOGGER.warning("No state available for section '%s'!", self._section_name)
-            self._attr_available = False
 
             return
 
         # Set current section state
-        self._attr_available = True
         self._attr_alarm_state = section_state_to_alarm_state(section_state)
         self.async_write_ha_state()
 
