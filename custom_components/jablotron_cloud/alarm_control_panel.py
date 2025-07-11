@@ -15,7 +15,7 @@ from jablotronpy import UnauthorizedException, IncorrectPinCodeException
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
 from .const import DOMAIN
-from .utils import get_section_state, section_state_to_alarm_state
+from .utils import get_component_state, section_state_to_alarm_state
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ async def async_setup_entry(
             section_id = section["cloud-component-id"]
             partial_arm_enabled = section["partial-arm-enabled"]
             requires_authorization = section["need-authorization"]
-            section_state = get_section_state(section_id, alarm["states"])
+            section_state = get_component_state(section_id, alarm["states"])
             current_state = section_state_to_alarm_state(section_state)
 
             # Check whether section is controllable
@@ -267,7 +267,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             return
 
         # Get section state
-        section_state = get_section_state(self._section_id, service_states)
+        section_state = get_component_state(self._section_id, service_states)
         if not section_state:
             _LOGGER.warning("No state available for section '%s'!", self._section_name)
 

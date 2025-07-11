@@ -14,7 +14,7 @@ from jablotronpy import JablotronProgrammableGatesGate, UnauthorizedException, I
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
 from .const import DOMAIN
-from .utils import get_pg_state, pg_state_to_binary_state
+from .utils import get_component_state, pg_state_to_binary_state
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ async def async_setup_entry(
             gate: JablotronProgrammableGatesGate
             gate_name = gate["name"]
             gate_id = gate["cloud-component-id"]
-            gate_state = get_pg_state(gate_id, gates["states"])
+            gate_state = get_component_state(gate_id, gates["states"])
             is_on = pg_state_to_binary_state(gate_state)
 
             # Check whether programmable gate is controllable
@@ -202,7 +202,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             return
 
         # Get gate state
-        gate_state = get_pg_state(self._gate_id, service_states)
+        gate_state = get_component_state(self._gate_id, service_states)
         if not gate_state:
             _LOGGER.warning("No state available for gate '%s'!", self._gate_name)
 

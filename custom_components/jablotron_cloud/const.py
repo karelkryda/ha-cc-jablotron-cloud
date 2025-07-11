@@ -14,13 +14,13 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Jablotron states as Home Assistant states
-STATE_AS_ALARM_STATE = {
+SECTION_STATE_AS_ALARM_STATE = {
     "ARM": AlarmControlPanelState.ARMED_AWAY,
     "PARTIAL_ARM": AlarmControlPanelState.ARMED_HOME,
     "DISARM": AlarmControlPanelState.DISARMED,
 }
 
-STATE_AS_BINARY_STATE = {
+PG_STATE_AS_BINARY_STATE = {
     "ON": True,
     "OFF": False
 }
