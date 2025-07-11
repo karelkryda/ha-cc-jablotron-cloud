@@ -19,7 +19,7 @@ from .const import DOMAIN, STATE_AS_BINARY_STATE
 _LOGGER = logging.getLogger(__name__)
 
 
-def state_to_binary_state(state: JablotronProgrammableGatesState | None) -> bool:
+def state_to_binary_state(state: JablotronProgrammableGatesState) -> bool:
     """Convert state to boolean value."""
 
     return STATE_AS_BINARY_STATE.get(state["state"], False)
@@ -206,21 +206,24 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Swi
             return
 
         # Get service states
-        states = service["gates"]["states"]
-        if not states:
+        service_states = service["gates"]["states"]
+        if not service_states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
+            self._attr_available = False
+
+            return
+
+        # Get gate state
+        gate_state = next(filter(lambda state: state["cloud-component-id"] == self._gate_id, service_states), None)
+        if not gate_state:
+            _LOGGER.warning("No state available for gate '%s'!", self._gate_name)
             self._attr_available = False
 
             return
 
         # Set current programmable gate state
         self._attr_available = True
-        self._attr_is_on = state_to_binary_state(
-            next(
-                filter(lambda state: state["cloud-component-id"] == self._gate_id, states),
-                None
-            )
-        )
+        self._attr_is_on = state_to_binary_state(gate_state)
         self.async_write_ha_state()
 
         _LOGGER.debug("Successfully updated gate state for gate '%s'", self._gate_name)

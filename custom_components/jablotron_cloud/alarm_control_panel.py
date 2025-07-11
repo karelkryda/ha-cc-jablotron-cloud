@@ -20,7 +20,7 @@ from .const import DOMAIN, STATE_AS_ALARM_STATE
 _LOGGER = logging.getLogger(__name__)
 
 
-def state_to_alarm_state(state: JablotronSectionsState | None) -> AlarmControlPanelState:
+def state_to_alarm_state(state: JablotronSectionsState) -> AlarmControlPanelState:
     """Convert state to AlarmControlPanelState."""
 
     return STATE_AS_ALARM_STATE.get(state["state"], STATE_UNKNOWN)
@@ -271,21 +271,27 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             return
 
         # Get service states
-        states = service["alarm"]["states"]
-        if not states:
+        service_states = service["alarm"]["states"]
+        if not service_states:
             _LOGGER.warning("No states data available for service '%d'!", self._service_id)
+            self._attr_available = False
+
+            return
+
+        # Get section state
+        section_state = next(
+            filter(lambda state: state["cloud-component-id"] == self._section_id, service_states),
+            None
+        )
+        if not section_state:
+            _LOGGER.warning("No state available for section '%s'!", self._section_name)
             self._attr_available = False
 
             return
 
         # Set current section state
         self._attr_available = True
-        self._attr_alarm_state = state_to_alarm_state(
-            next(
-                filter(lambda state: state["cloud-component-id"] == self._section_id, states),
-                None
-            )
-        )
+        self._attr_alarm_state = state_to_alarm_state(section_state)
         self.async_write_ha_state()
 
         _LOGGER.debug("Successfully updated alarm state for section '%s'", self._section_name)
