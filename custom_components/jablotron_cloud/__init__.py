@@ -72,21 +72,23 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: JablotronConfig
     version = config_entry.version
     minor_version = config_entry.minor_version
 
-    # User has downgraded from a future version
+    # Ignore that user downgraded from newer version of integration
     if version > 3:
         return False
 
     # Modify config entry based on previous version
     _LOGGER.debug("Migrating configuration from version %s.%s", version, minor_version)
     new_data = config_entry.data.copy()
-    # Add default values for 'force_update', 'scan_interval' and 'timeout'
     if version == 2:
+        # Add default values for 'force_update', 'scan_interval' and 'timeout'
         new_data[CONF_FORCE_UPDATE] = True
         new_data[CONF_SCAN_INTERVAL] = 30
         new_data[CONF_TIMEOUT] = 15
 
+    # Set config entry version to the latest one
     hass.config_entries.async_update_entry(config_entry, data=new_data, minor_version=1, version=3)
     _LOGGER.info("Migrated configuration to version %s.%s", config_entry.version, config_entry.minor_version)
+
     return True
 
 
