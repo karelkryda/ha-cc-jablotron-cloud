@@ -137,6 +137,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
             sw_version=self._service_firmware
         )
 
+    # noinspection DuplicatedCode
     @callback
     def _handle_coordinator_update(self) -> None:
         """Process data retrieved by coordinator."""
