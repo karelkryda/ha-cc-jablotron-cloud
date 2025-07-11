@@ -6,24 +6,18 @@ import logging
 
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity, AlarmControlPanelEntityFeature, \
     AlarmControlPanelState, CodeFormat
-from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from jablotronpy import JablotronSectionsState, UnauthorizedException, IncorrectPinCodeException
+from jablotronpy import UnauthorizedException, IncorrectPinCodeException
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
-from .const import DOMAIN, STATE_AS_ALARM_STATE
+from .const import DOMAIN
+from .utils import get_section_state, section_state_to_alarm_state
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def state_to_alarm_state(state: JablotronSectionsState) -> AlarmControlPanelState:
-    """Convert state to AlarmControlPanelState."""
-
-    return STATE_AS_ALARM_STATE.get(state["state"], STATE_UNKNOWN)
 
 
 async def async_setup_entry(
@@ -55,12 +49,8 @@ async def async_setup_entry(
             section_id = section["cloud-component-id"]
             partial_arm_enabled = section["partial-arm-enabled"]
             requires_authorization = section["need-authorization"]
-            current_state = state_to_alarm_state(
-                next(
-                    filter(lambda state: state["cloud-component-id"] == section_id, alarm["states"]),
-                    None
-                )
-            )
+            section_state = get_section_state(section_id, alarm["states"])
+            current_state = section_state_to_alarm_state(section_state)
 
             # Check whether section is controllable
             if not section["can-control"]:
@@ -279,10 +269,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
             return
 
         # Get section state
-        section_state = next(
-            filter(lambda state: state["cloud-component-id"] == self._section_id, service_states),
-            None
-        )
+        section_state = get_section_state(self._section_id, service_states)
         if not section_state:
             _LOGGER.warning("No state available for section '%s'!", self._section_name)
             self._attr_available = False
@@ -291,7 +278,7 @@ class JablotronAlarmControlPanel(CoordinatorEntity[JablotronDataCoordinator], Al
 
         # Set current section state
         self._attr_available = True
-        self._attr_alarm_state = state_to_alarm_state(section_state)
+        self._attr_alarm_state = section_state_to_alarm_state(section_state)
         self.async_write_ha_state()
 
         _LOGGER.debug("Successfully updated alarm state for section '%s'", self._section_name)

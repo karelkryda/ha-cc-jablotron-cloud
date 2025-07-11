@@ -9,18 +9,13 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from jablotronpy import JablotronProgrammableGatesGate, JablotronProgrammableGatesState
+from jablotronpy import JablotronProgrammableGatesGate
 
 from . import JablotronConfigEntry, JablotronData, JablotronDataCoordinator, JablotronClient
-from .const import DOMAIN, STATE_AS_BINARY_STATE
+from .const import DOMAIN
+from .utils import get_pg_state, pg_state_to_binary_state
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def state_to_binary_state(state: JablotronProgrammableGatesState) -> bool:
-    """Convert state to boolean value."""
-
-    return STATE_AS_BINARY_STATE.get(state["state"], False)
 
 
 async def async_setup_entry(
@@ -51,12 +46,8 @@ async def async_setup_entry(
             gate: JablotronProgrammableGatesGate
             gate_name = gate["name"]
             gate_id = gate["cloud-component-id"]
-            is_on = state_to_binary_state(
-                next(
-                    filter(lambda state: state["cloud-component-id"] == gate_id, gates["states"]),
-                    None
-                )
-            )
+            gate_state = get_pg_state(gate_id, gates["states"])
+            is_on = pg_state_to_binary_state(gate_state)
 
             # Check whether programmable gate is NOT controllable
             if gate["can-control"]:
@@ -161,7 +152,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
             return
 
         # Get gate state
-        gate_state = next(filter(lambda state: state["cloud-component-id"] == self._gate_id, service_states), None)
+        gate_state = get_pg_state(self._gate_id, service_states)
         if not gate_state:
             _LOGGER.warning("No state available for gate '%s'!", self._gate_name)
             self._attr_available = False
@@ -170,7 +161,7 @@ class JablotronProgrammableGate(CoordinatorEntity[JablotronDataCoordinator], Bin
 
         # Set current programmable gate state
         self._attr_available = True
-        self._attr_is_on = state_to_binary_state(gate_state)
+        self._attr_is_on = pg_state_to_binary_state(gate_state)
         self.async_write_ha_state()
 
         _LOGGER.debug("Successfully updated gate state for gate '%s'", self._gate_name)
